@@ -1,0 +1,6 @@
+{
+  "name": "SIDAKAM Lapas Batang",
+  "description": "SIDAKAM - Sistem Informasi Data Keamanan LAPAS BATANG: Laporan Insiden Real-time, Register F & Manajemen Keamanan",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

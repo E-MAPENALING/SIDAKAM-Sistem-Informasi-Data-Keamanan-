@@ -1,0 +1,92 @@
+@import "tailwindcss";
+
+/* Top-level @page rule for F4 / Folio Paper Size & Exact Margins */
+@page {
+  size: 215mm 330mm; /* Kertas F4 / Folio */
+  margin-top: 3cm !important;
+  margin-right: 2cm !important;
+  margin-bottom: 2cm !important;
+  margin-left: 2cm !important;
+}
+
+@media print {
+  /* Hide standard app interface elements during print */
+  header, nav, footer, main, .print\:hidden, #app-header, #app-nav-tabs, button, input {
+    display: none !important;
+  }
+
+  /* Reset body, root, and wrapper divs for page printing */
+  html, body, #root, body > div, main {
+    background-color: #ffffff !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+  }
+
+  /* Ensure all nested container backgrounds don't render dark during print */
+  div {
+    background-color: transparent !important;
+    color: #000000 !important;
+  }
+
+  /* Target modal printable overlay */
+  .printable-modal-overlay {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    background: #ffffff !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
+    display: block !important;
+    z-index: 999999 !important;
+  }
+
+  .printable-sheet {
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    border-radius: 0 !important;
+  }
+
+  /* Retain exact colors for borders and header fills */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Table rules for clean print layout */
+  table {
+    width: 100% !important;
+    table-layout: fixed !important;
+    border-collapse: collapse !important;
+    page-break-inside: auto;
+  }
+
+  th, td {
+    word-wrap: break-word !important;
+    overflow-wrap: break-word !important;
+  }
+
+  tr {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    page-break-after: auto;
+  }
+
+  .footer, .sig-block {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+}
+
