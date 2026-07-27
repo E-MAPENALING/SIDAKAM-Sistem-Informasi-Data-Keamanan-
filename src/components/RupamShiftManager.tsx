@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { RupamShift, SecurityOfficer } from '../types';
+import { getKopSuratHTML } from '../lib/kopSurat';
 import { 
   Building, 
   Users, 
@@ -230,55 +231,56 @@ export const RupamShiftManager: React.FC<RupamShiftManagerProps> = ({
       day: 'numeric',
     });
 
+    const kopHtml = getKopSuratHTML(
+      'DAFTAR PERSONIL PETUGAS KEAMANAN LAPAS BATANG',
+      `Tanggal Cetak: ${todayStr}`
+    );
+
     const htmlContent = `
       <!DOCTYPE html>
       <html>
         <head>
           <title>Daftar Petugas Keamanan Lapas Batang</title>
           <style>
-            body { font-family: 'Times New Roman', Times, serif; margin: 30px; font-size: 11pt; color: #000; }
-            .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px; }
-            .header h2 { margin: 0; font-size: 14pt; text-transform: uppercase; }
-            .header h3 { margin: 3px 0; font-size: 12pt; text-transform: uppercase; }
-            .header p { margin: 2px 0; font-size: 10pt; font-style: italic; }
+            @page {
+              size: A4 portrait;
+              margin: 1.8cm;
+            }
+            body { font-family: Arial, Helvetica, sans-serif; margin: 20px; font-size: 11pt; color: #000; }
             table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-            th, td { border: 1px solid #000; padding: 6px 8px; text-align: left; font-size: 10pt; }
-            th { background-color: #f2f2f2; font-weight: bold; text-align: center; }
+            th, td { border: 1.5px solid #000; padding: 8px; text-align: left; font-size: 10pt; vertical-align: middle; }
+            th { background-color: #f1f5f9; font-weight: bold; text-align: center; text-transform: uppercase; }
             .text-center { text-align: center; }
-            .signature { margin-top: 40px; float: right; width: 250px; text-align: center; }
+            .signature { margin-top: 40px; float: right; width: 280px; text-align: center; font-size: 10pt; }
+            .officer-photo { width: 52px; height: 52px; object-fit: cover; border-radius: 50%; border: 1.5px solid #000; display: block; margin: 0 auto; }
+            .officer-avatar { width: 48px; height: 48px; border-radius: 50%; background-color: #0f172a; color: #ffffff; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14pt; margin: 0 auto; }
           </style>
         </head>
         <body>
-          <div class="header">
-            <h3>KEMENTERIAN HUKUM DAN HAK ASASI MANUSIA R.I.</h3>
-            <h3>KANTOR WILAYAH JAWA TENGAH</h3>
-            <h2>LAPAS KELAS IIB BATANG</h2>
-            <p>Jl. Raya Batang - Semarang No. 12, Batang • Telp/Fax: (0285) 391012</p>
-          </div>
-
-          <h3 style="text-align: center; margin-bottom: 5px;">DAFTAR PERSONIL PETUGAS KEAMANAN LAPAS BATANG</h3>
-          <p style="text-align: center; margin-top: 0; font-size: 10pt;">Tanggal Cetak: ${todayStr}</p>
+          ${kopHtml}
 
           <table>
             <thead>
               <tr>
-                <th width="5%">NO</th>
-                <th width="22%">NAMA PETUGAS</th>
-                <th width="18%">NIP / NRP</th>
-                <th width="18%">PANGKAT / GOL</th>
-                <th width="20%">JABATAN / POS</th>
-                <th width="17%">REGU / STAF</th>
+                <th width="8%">NO</th>
+                <th width="22%">FOTO PETUGAS</th>
+                <th width="42%">NAMA PETUGAS</th>
+                <th width="28%">JABATAN / POS PENJAGAAN</th>
               </tr>
             </thead>
             <tbody>
               ${filteredOfficers.map((o, idx) => `
                 <tr>
-                  <td class="text-center">${idx + 1}</td>
-                  <td><strong>${o.name}</strong></td>
-                  <td>${o.nip}</td>
-                  <td>${o.rank}</td>
-                  <td>${o.position}</td>
-                  <td class="text-center">${o.regu}</td>
+                  <td class="text-center" style="font-weight: bold;">${idx + 1}</td>
+                  <td class="text-center">
+                    ${o.photoUrl ? `
+                      <img src="${o.photoUrl}" class="officer-photo" alt="${o.name}" />
+                    ` : `
+                      <div class="officer-avatar">${o.name ? o.name.charAt(0) : 'P'}</div>
+                    `}
+                  </td>
+                  <td style="font-weight: bold; font-size: 11pt;">${o.name}</td>
+                  <td style="font-size: 10.5pt; font-weight: 600; color: #1e293b;">${o.position}</td>
                 </tr>
               `).join('')}
             </tbody>
@@ -287,9 +289,9 @@ export const RupamShiftManager: React.FC<RupamShiftManagerProps> = ({
           <div class="signature">
             <p>Batang, ${todayStr}</p>
             <p>Mengetahui,</p>
-            <p><strong>KA. KPLP LAPAS BATANG</strong></p>
+            <p style="margin-top: 5px;"><strong>KA. KPLP LAPAS BATANG</strong></p>
             <br><br><br>
-            <p><u><strong>NURIAKMAN, S.H.</strong></u></p>
+            <p><u><strong>SIGIT, S.H., M.H.</strong></u></p>
             <p>NIP. 19780512 200003 1 001</p>
           </div>
         </body>
@@ -421,82 +423,52 @@ export const RupamShiftManager: React.FC<RupamShiftManagerProps> = ({
               filteredOfficers.map((off) => (
                 <div
                   key={off.id}
-                  className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm hover:border-blue-300 transition-all space-y-3 flex flex-col justify-between"
+                  className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm hover:border-blue-300 transition-all flex items-center justify-between gap-4"
                 >
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-base shrink-0 shadow-sm border-2 border-slate-700 overflow-hidden">
-                          {off.photoUrl ? (
-                            <img 
-                              src={off.photoUrl} 
-                              alt={off.name} 
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                // Fallback to initial if image breaks
-                                (e.target as HTMLElement).style.display = 'none';
-                              }}
-                            />
-                          ) : (
-                            <span>{off.name.charAt(0)}</span>
-                          )}
-                        </div>
-                        <div>
-                          <h4 className="font-bold text-sm text-slate-900 leading-tight">{off.name}</h4>
-                          <span className="text-[11px] font-mono text-slate-500 block">NIP: {off.nip}</span>
-                        </div>
-                      </div>
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <div className="w-14 h-14 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-lg shrink-0 shadow-sm border-2 border-slate-700 overflow-hidden">
+                      {off.photoUrl ? (
+                        <img 
+                          src={off.photoUrl} 
+                          alt={off.name} 
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            (e.target as HTMLElement).style.display = 'none';
+                          }}
+                        />
+                      ) : (
+                        <span>{off.name ? off.name.charAt(0) : 'P'}</span>
+                      )}
                     </div>
-
-                    <div className="space-y-1 text-xs text-slate-600 bg-slate-50/80 p-2.5 rounded-lg border border-slate-100">
-                      <div className="flex items-center justify-between">
-                        <span className="text-slate-500 font-medium">Jabatan:</span>
-                        <strong className="text-slate-800 text-right">{off.position}</strong>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-slate-500 font-medium">Pangkat / Gol:</span>
-                        <span className="font-semibold text-slate-700">{off.rank}</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-slate-500 font-medium">Regu / Pos:</span>
-                        <span className="font-bold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100">
-                          {off.regu}
-                        </span>
+                    <div className="min-w-0 space-y-1">
+                      <h4 className="font-bold text-sm text-slate-900 leading-snug truncate">{off.name}</h4>
+                      <div className="inline-block bg-slate-100 text-slate-800 border border-slate-200 text-xs font-semibold px-2.5 py-0.5 rounded-md">
+                        {off.position}
                       </div>
                     </div>
                   </div>
 
-                  <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
-                    <a
-                      href={`tel:${off.phone}`}
-                      className="text-slate-600 hover:text-blue-700 flex items-center gap-1 font-semibold text-[11px]"
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => handleOpenOfficerModal(off)}
+                      className="p-2 hover:bg-slate-100 text-slate-600 rounded-lg transition-colors border border-slate-200"
+                      title="Edit Data Petugas"
                     >
-                      <Phone className="w-3.5 h-3.5 text-blue-600" />
-                      <span>{off.phone || '0812-XXXX-XXXX'}</span>
-                    </a>
-
-                    <div className="flex items-center gap-1">
-                      <button
-                        type="button"
-                        onClick={() => handleOpenOfficerModal(off)}
-                        className="p-1.5 hover:bg-slate-100 text-slate-600 rounded transition-colors"
-                        title="Edit Data Petugas"
-                      >
-                        <Edit3 className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (window.confirm(`Yakin ingin menghapus data petugas ${off.name}?`)) {
-                            onDeleteOfficer(off.id);
-                          }
-                        }}
-                        className="p-1.5 hover:bg-rose-50 text-slate-400 hover:text-rose-600 rounded transition-colors"
-                        title="Hapus Petugas"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
+                      <Edit3 className="w-4 h-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (window.confirm(`Yakin ingin menghapus data petugas ${off.name}?`)) {
+                          onDeleteOfficer(off.id);
+                        }
+                      }}
+                      className="p-2 hover:bg-rose-50 text-slate-400 hover:text-rose-600 rounded-lg transition-colors border border-slate-200"
+                      title="Hapus Petugas"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
               ))

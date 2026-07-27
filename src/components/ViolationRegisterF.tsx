@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { WBPRecord, ViolationRecord, ViolationSeverity, PunishmentType } from '../types';
 import { getStoredAppLogo } from './ImipasLogo';
+import { getKopSuratHTML } from '../lib/kopSurat';
 import { 
   Lock, 
   Search, 
@@ -374,20 +375,7 @@ export const ViolationRegisterF: React.FC<ViolationRegisterFProps> = ({
   </style>
 </head>
 <body>
-  <div class="header">
-    ${appLogoUrl ? `<img src="${appLogoUrl}" class="logo" alt="Logo" />` : `<svg class="logo" viewBox="0 0 100 100" fill="none"><circle cx="50" cy="50" r="45" fill="#1e3a8a"/><path d="M50 15 L80 80 L20 80 Z" fill="#fbbf24"/></svg>`}
-    <div class="header-text">
-      <h4>KEMENTERIAN IMIGRASI DAN PEMASYARAKATAN</h4>
-      <h3>KANTOR WILAYAH JAWA TENGAH</h3>
-      <h2>LEMBAGA PEMASYARAKATAN KELAS IIB BATANG</h2>
-      <p>Jalan Raya Batang KM 4.1 Rowobelang, Kabupaten Batang | Telp: (0285) 391042</p>
-    </div>
-  </div>
-
-  <div class="doc-title">
-    <h3>DAFTAR REKAPITULASI KESELURUHAN WBP MELANGGAR TATA TERTIB & REGISTER F</h3>
-    <p>LAPAS KELAS IIB BATANG - TANGGAL CETAK: ${todayStr}</p>
-  </div>
+  ${getKopSuratHTML('DAFTAR REKAPITULASI KESELURUHAN WBP MELANGGAR TATA TERTIB & REGISTER F', `LAPAS KELAS IIB BATANG - TANGGAL CETAK: ${todayStr}`)}
 
   <div class="summary-box">
     <div><strong>Total WBP Melanggar:</strong> ${listToPrint.length} Orang</div>

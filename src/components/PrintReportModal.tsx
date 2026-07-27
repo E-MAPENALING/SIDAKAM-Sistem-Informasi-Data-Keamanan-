@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ViolationRecord } from '../types';
 import { Printer, Download, X, FileText, Upload, PenTool, RotateCcw } from 'lucide-react';
 import { ImipasLogo, setStoredAppLogo, getStoredAppLogo } from './ImipasLogo';
+import { getKopSuratHTML } from '../lib/kopSurat';
 
 interface PrintReportModalProps {
   violation: ViolationRecord | null;
@@ -256,19 +257,7 @@ export const PrintReportModal: React.FC<PrintReportModalProps> = ({
   </style>
 </head>
 <body>
-  <div class="header">
-    ${appLogoUrl ? `<img src="${appLogoUrl}" class="logo" alt="Logo" />` : `<svg class="logo" viewBox="0 0 100 100" fill="none"><circle cx="50" cy="50" r="45" fill="#1e3a8a"/><path d="M50 15 L80 80 L20 80 Z" fill="#fbbf24"/></svg>`}
-    <div class="header-text">
-      <h4>KEMENTERIAN IMIGRASI DAN PEMASYARAKATAN</h4>
-      <h3>KANTOR WILAYAH JAWA TENGAH</h3>
-      <h2>LEMBAGA PEMASYARAKATAN KELAS IIB BATANG</h2>
-      <p>Jalan Raya Batang KM 4.1 Rowobelang, Kabupaten Batang | Telp: (0285) 391042</p>
-    </div>
-  </div>
-
-  <div class="title">
-    <h3>LAPORAN KRONOLOGI AWAL PELANGGARAN DISIPLIN WARGA BINAAN</h3>
-  </div>
+  ${getKopSuratHTML('LAPORAN KRONOLOGI AWAL PELANGGARAN DISIPLIN WARGA BINAAN')}
 
   <p class="statement">
     Pada hari ini, tanggal <strong>${formattedDate}</strong>, berdasarkan informasi dari <strong>${infoSource || '.......................'}</strong> terkait dengan <strong>${infoSubject || '.......................'}</strong> KPLP melakukan pemeriksaan awal terhadap Warga Binaan Pemasyarakatan (WBP) berikut:
