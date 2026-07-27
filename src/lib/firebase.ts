@@ -46,6 +46,7 @@ export const COLLECTIONS = {
   VIOLATIONS: 'violations',
   SHIFTS: 'rupam_shifts',
   OFFICERS: 'security_officers',
+  SETTINGS: 'app_settings',
 };
 
 // --- Seed Initial Data if Collections are Empty ---
@@ -118,7 +119,12 @@ export function subscribeToCollection<T extends { id: string }>(
   const colRef = collection(db, collectionName);
   return onSnapshot(colRef, (snapshot) => {
     if (snapshot.empty && fallbackInitial.length > 0) {
-      // If collection is completely empty, trigger seed or return fallback
+      // Automatically seed initial data to Firestore so all connected clients sync
+      const batch = writeBatch(db);
+      fallbackInitial.forEach((item) => {
+        batch.set(doc(db, collectionName, item.id), item);
+      });
+      batch.commit().catch((err) => console.error(`Error auto seeding ${collectionName}:`, err));
       onUpdate(fallbackInitial);
     } else {
       const list = snapshot.docs.map(doc => ({

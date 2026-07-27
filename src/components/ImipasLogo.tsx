@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { db, COLLECTIONS, saveDocumentToCloud, deleteDocumentFromCloud } from '../lib/firebase';
+import { doc, onSnapshot } from 'firebase/firestore';
 
 interface ImipasLogoProps {
   className?: string;
@@ -19,8 +21,10 @@ export const setStoredAppLogo = (logoData: string | null): void => {
   try {
     if (logoData) {
       localStorage.setItem(APP_LOGO_KEY, logoData);
+      saveDocumentToCloud(COLLECTIONS.SETTINGS, { id: 'app_logo', url: logoData });
     } else {
       localStorage.removeItem(APP_LOGO_KEY);
+      deleteDocumentFromCloud(COLLECTIONS.SETTINGS, 'app_logo');
     }
     window.dispatchEvent(new Event('app_logo_changed'));
   } catch (err) {

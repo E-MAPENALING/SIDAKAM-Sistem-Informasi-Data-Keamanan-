@@ -26,8 +26,11 @@ import {
   saveStatsToCloud, 
   saveDocumentToCloud, 
   deleteDocumentFromCloud, 
-  COLLECTIONS 
+  COLLECTIONS,
+  db
 } from './lib/firebase';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { APP_LOGO_KEY } from './components/ImipasLogo';
 
 import { Header } from './components/Header';
 import { DashboardOverview } from './components/DashboardOverview';
@@ -117,6 +120,21 @@ export default function App() {
       INITIAL_OFFICERS
     );
 
+    // Subscribe to App Logo settings across devices
+    const logoDocRef = doc(db, COLLECTIONS.SETTINGS, 'app_logo');
+    const unsubLogo = onSnapshot(logoDocRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const logoUrl = snapshot.data().url;
+        if (logoUrl) {
+          localStorage.setItem(APP_LOGO_KEY, logoUrl);
+          window.dispatchEvent(new Event('app_logo_changed'));
+        }
+      } else {
+        localStorage.removeItem(APP_LOGO_KEY);
+        window.dispatchEvent(new Event('app_logo_changed'));
+      }
+    });
+
     return () => {
       unsubStats();
       unsubJournal();
@@ -125,6 +143,7 @@ export default function App() {
       unsubViolations();
       unsubShifts();
       unsubOfficers();
+      unsubLogo();
     };
   }, []);
 
