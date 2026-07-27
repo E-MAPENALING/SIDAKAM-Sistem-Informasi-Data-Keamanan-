@@ -1,0 +1,107 @@
+{
+  "entities": {
+    "SecurityStats": {
+      "title": "SecurityStats",
+      "description": "Statistik keamanan dan status Lapas Batang",
+      "type": "object",
+      "properties": {
+        "totalWBP": { "type": "number" },
+        "capacityMax": { "type": "number" },
+        "tahananCount": { "type": "number" },
+        "napiCount": { "type": "number" },
+        "activeIncidentsCount": { "type": "number" },
+        "activeIsolationsCount": { "type": "number" },
+        "registerFActiveCount": { "type": "number" },
+        "rupamActive": { "type": "string" },
+        "danrupamActive": { "type": "string" },
+        "currentSecurityLevel": { "type": "string" }
+      }
+    },
+    "IncidentReport": {
+      "title": "IncidentReport",
+      "description": "Laporan insiden keamanan",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "code": { "type": "string" },
+        "timestamp": { "type": "string" },
+        "location": { "type": "string" },
+        "category": { "type": "string" },
+        "urgency": { "type": "string" },
+        "status": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "reporterName": { "type": "string" },
+        "reporterRole": { "type": "string" },
+        "actionTaken": { "type": "string" }
+      }
+    },
+    "DailyJournalEntry": {
+      "title": "DailyJournalEntry",
+      "description": "Jurnal harian KPLP",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "dayName": { "type": "string" },
+        "date": { "type": "string" },
+        "timeRange": { "type": "string" },
+        "activityDescription": { "type": "string" }
+      }
+    },
+    "WBPRecord": {
+      "title": "WBPRecord",
+      "description": "Data WBP Lapas Batang",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "regNumber": { "type": "string" },
+        "nik": { "type": "string" },
+        "name": { "type": "string" },
+        "status": { "type": "string" },
+        "block": { "type": "string" },
+        "roomNumber": { "type": "string" },
+        "crime": { "type": "string" },
+        "sentence": { "type": "string" },
+        "entryDate": { "type": "string" },
+        "releaseDate": { "type": "string" },
+        "punishmentStatus": { "type": "string" },
+        "violationCount": { "type": "number" }
+      }
+    },
+    "ViolationRecord": {
+      "title": "ViolationRecord",
+      "description": "Data pelanggaran WBP / Register F",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "bapNumber": { "type": "string" },
+        "wbpId": { "type": "string" },
+        "wbpName": { "type": "string" },
+        "wbpRegNumber": { "type": "string" },
+        "date": { "type": "string" },
+        "violationDetail": { "type": "string" },
+        "severity": { "type": "string" },
+        "punishment": { "type": "string" },
+        "registerFStatus": { "type": "string" },
+        "investigatorName": { "type": "string" },
+        "kplpSignatureApproved": { "type": "boolean" }
+      }
+    },
+    "RupamShift": {
+      "title": "RupamShift",
+      "description": "Serah terima Rupam",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "reguName": { "type": "string" },
+        "shiftType": { "type": "string" },
+        "danrupamName": { "type": "string" },
+        "officerCount": { "type": "number" },
+        "presentOfficers": { "type": "number" },
+        "totalWBP": { "type": "number" },
+        "handoverNotes": { "type": "string" },
+        "date": { "type": "string text" }
+      }
+    }
+  }
+}

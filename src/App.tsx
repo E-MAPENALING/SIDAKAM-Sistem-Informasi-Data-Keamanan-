@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   SecurityStats, 
   SecurityLevel, 
@@ -7,6 +7,7 @@ import {
   WBPRecord, 
   ViolationRecord, 
   RupamShift,
+  SecurityOfficer,
   IncidentStatus
 } from './types';
 import { 
@@ -15,8 +16,18 @@ import {
   INITIAL_DAILY_JOURNAL,
   INITIAL_WBP_DATA, 
   INITIAL_VIOLATIONS, 
-  INITIAL_RUPAM_SHIFTS 
+  INITIAL_RUPAM_SHIFTS,
+  INITIAL_OFFICERS 
 } from './data/mockData';
+import { 
+  seedInitialDataIfEmpty, 
+  subscribeToStats, 
+  subscribeToCollection, 
+  saveStatsToCloud, 
+  saveDocumentToCloud, 
+  deleteDocumentFromCloud, 
+  COLLECTIONS 
+} from './lib/firebase';
 
 import { Header } from './components/Header';
 import { DashboardOverview } from './components/DashboardOverview';
@@ -33,7 +44,7 @@ import {
   BookOpen,
   ShieldAlert, 
   Lock, 
-  Building, 
+  Users, 
   Sparkles, 
   Radio
 } from 'lucide-react';
@@ -42,43 +53,94 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<'overview' | 'journal' | 'violations' | 'rupam' | 'ai-analyst'>('overview');
 
   // Application Data States
-  const [stats, setStats] = useState<SecurityStats>(() => {
-    try {
-      const saved = localStorage.getItem('kemenimipas_security_stats');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        return { ...INITIAL_SECURITY_STATS, ...parsed };
-      }
-    } catch (e) {
-      console.error('Error loading stats from localStorage:', e);
-    }
-    return INITIAL_SECURITY_STATS;
-  });
-
-  const handleUpdateStats = (newStats: Partial<SecurityStats>) => {
-    setStats((prev) => {
-      const updated = { ...prev, ...newStats };
-      try {
-        localStorage.setItem('kemenimipas_security_stats', JSON.stringify(updated));
-      } catch (e) {
-        console.error('Error saving stats to localStorage:', e);
-      }
-      return updated;
-    });
-  };
+  const [stats, setStats] = useState<SecurityStats>(INITIAL_SECURITY_STATS);
   const [journalEntries, setJournalEntries] = useState<DailyJournalEntry[]>(INITIAL_DAILY_JOURNAL);
   const [incidents, setIncidents] = useState<IncidentReport[]>(INITIAL_INCIDENTS);
   const [wbpList, setWbpList] = useState<WBPRecord[]>(INITIAL_WBP_DATA);
   const [violations, setViolations] = useState<ViolationRecord[]>(INITIAL_VIOLATIONS);
   const [shifts, setShifts] = useState<RupamShift[]>(INITIAL_RUPAM_SHIFTS);
+  const [officers, setOfficers] = useState<SecurityOfficer[]>(INITIAL_OFFICERS);
 
   // Modals State
   const [isEmergencyModalOpen, setIsEmergencyModalOpen] = useState(false);
   const [selectedBapForPrint, setSelectedBapForPrint] = useState<ViolationRecord | null>(null);
 
-  // Handlers
+  // --- Realtime Sync Listeners across HP & Web ---
+  useEffect(() => {
+    // Seed initial data if Firebase Firestore is empty
+    seedInitialDataIfEmpty();
+
+    // Subscribe to Security Stats
+    const unsubStats = subscribeToStats((newStats) => {
+      setStats(newStats);
+    });
+
+    // Subscribe to Journal Entries
+    const unsubJournal = subscribeToCollection<DailyJournalEntry>(
+      COLLECTIONS.JOURNAL,
+      setJournalEntries,
+      INITIAL_DAILY_JOURNAL
+    );
+
+    // Subscribe to Incident Reports
+    const unsubIncidents = subscribeToCollection<IncidentReport>(
+      COLLECTIONS.INCIDENTS,
+      setIncidents,
+      INITIAL_INCIDENTS
+    );
+
+    // Subscribe to WBP Records
+    const unsubWbp = subscribeToCollection<WBPRecord>(
+      COLLECTIONS.WBP,
+      setWbpList,
+      INITIAL_WBP_DATA
+    );
+
+    // Subscribe to Violation Records
+    const unsubViolations = subscribeToCollection<ViolationRecord>(
+      COLLECTIONS.VIOLATIONS,
+      setViolations,
+      INITIAL_VIOLATIONS
+    );
+
+    // Subscribe to Rupam Shifts
+    const unsubShifts = subscribeToCollection<RupamShift>(
+      COLLECTIONS.SHIFTS,
+      setShifts,
+      INITIAL_RUPAM_SHIFTS
+    );
+
+    // Subscribe to Security Officers
+    const unsubOfficers = subscribeToCollection<SecurityOfficer>(
+      COLLECTIONS.OFFICERS,
+      setOfficers,
+      INITIAL_OFFICERS
+    );
+
+    return () => {
+      unsubStats();
+      unsubJournal();
+      unsubIncidents();
+      unsubWbp();
+      unsubViolations();
+      unsubShifts();
+      unsubOfficers();
+    };
+  }, []);
+
+  // Handlers with Cloud Sync
+  const handleUpdateStats = (newStats: Partial<SecurityStats>) => {
+    setStats((prev) => {
+      const updated = { ...prev, ...newStats };
+      saveStatsToCloud(updated);
+      return updated;
+    });
+  };
+
   const handleSecurityLevelChange = (newLevel: SecurityLevel) => {
-    setStats((prev) => ({ ...prev, currentSecurityLevel: newLevel }));
+    const updated = { ...stats, currentSecurityLevel: newLevel };
+    setStats(updated);
+    saveStatsToCloud(updated);
   };
 
   const handleAddJournalEntry = (newEntryData: Omit<DailyJournalEntry, 'id'>) => {
@@ -86,17 +148,15 @@ export default function App() {
       ...newEntryData,
       id: 'journal-' + Date.now(),
     };
-    setJournalEntries([newEntry, ...journalEntries]);
+    saveDocumentToCloud(COLLECTIONS.JOURNAL, newEntry);
   };
 
   const handleUpdateJournalEntry = (updatedEntry: DailyJournalEntry) => {
-    setJournalEntries((prev) =>
-      prev.map((item) => (item.id === updatedEntry.id ? updatedEntry : item))
-    );
+    saveDocumentToCloud(COLLECTIONS.JOURNAL, updatedEntry);
   };
 
   const handleDeleteJournalEntry = (id: string) => {
-    setJournalEntries((prev) => prev.filter((j) => j.id !== id));
+    deleteDocumentFromCloud(COLLECTIONS.JOURNAL, id);
   };
 
   const handleAddIncident = (newIncData: Omit<IncidentReport, 'id' | 'code'>) => {
@@ -110,31 +170,32 @@ export default function App() {
       code,
     };
 
-    setIncidents([newIncident, ...incidents]);
+    saveDocumentToCloud(COLLECTIONS.INCIDENTS, newIncident);
 
     // Update active incidents count stat if not complete
     if (newIncident.status !== 'SELESAI') {
-      setStats((prev) => ({
-        ...prev,
-        activeIncidentsCount: prev.activeIncidentsCount + 1,
-      }));
+      const updatedStats = {
+        ...stats,
+        activeIncidentsCount: stats.activeIncidentsCount + 1,
+      };
+      setStats(updatedStats);
+      saveStatsToCloud(updatedStats);
     }
   };
 
   const handleUpdateIncidentStatus = (id: string, newStatus: IncidentStatus) => {
-    setIncidents((prev) =>
-      prev.map((inc) => {
-        if (inc.id === id) {
-          return { ...inc, status: newStatus };
-        }
-        return inc;
-      })
-    );
+    const target = incidents.find((inc) => inc.id === id);
+    if (target) {
+      const updatedIncident = { ...target, status: newStatus };
+      saveDocumentToCloud(COLLECTIONS.INCIDENTS, updatedIncident);
 
-    // Recalculate stats
-    const updatedList = incidents.map((inc) => (inc.id === id ? { ...inc, status: newStatus } : inc));
-    const activeCount = updatedList.filter((i) => i.status !== 'SELESAI').length;
-    setStats((prev) => ({ ...prev, activeIncidentsCount: activeCount }));
+      // Recalculate stats
+      const updatedList = incidents.map((inc) => (inc.id === id ? updatedIncident : inc));
+      const activeCount = updatedList.filter((i) => i.status !== 'SELESAI').length;
+      const updatedStats = { ...stats, activeIncidentsCount: activeCount };
+      setStats(updatedStats);
+      saveStatsToCloud(updatedStats);
+    }
   };
 
   const handleAddViolation = (newViolData: Omit<ViolationRecord, 'id' | 'bapNumber'>) => {
@@ -148,38 +209,51 @@ export default function App() {
       bapNumber,
     };
 
-    setViolations([newViolation, ...violations]);
+    saveDocumentToCloud(COLLECTIONS.VIOLATIONS, newViolation);
 
     // Update WBP status in list if isolasi active
     if (newViolation.punishment === 'ISOLASI_TUTUPAN_SUNYI') {
-      setWbpList((prev) =>
-        prev.map((w) => {
-          if (w.id === newViolation.wbpId) {
-            return {
-              ...w,
-              punishmentStatus: 'ISOLASI_AKTIF',
-              violationCount: w.violationCount + 1,
-            };
-          }
-          return w;
-        })
-      );
+      const targetWbp = wbpList.find((w) => w.id === newViolation.wbpId);
+      if (targetWbp) {
+        const updatedWbp: WBPRecord = {
+          ...targetWbp,
+          punishmentStatus: 'ISOLASI_AKTIF',
+          violationCount: targetWbp.violationCount + 1,
+        };
+        saveDocumentToCloud(COLLECTIONS.WBP, updatedWbp);
+      }
 
-      setStats((prev) => ({
-        ...prev,
-        activeIsolationsCount: prev.activeIsolationsCount + 1,
-        registerFActiveCount: prev.registerFActiveCount + 1,
-      }));
+      const updatedStats = {
+        ...stats,
+        activeIsolationsCount: stats.activeIsolationsCount + 1,
+        registerFActiveCount: stats.registerFActiveCount + 1,
+      };
+      setStats(updatedStats);
+      saveStatsToCloud(updatedStats);
     }
   };
 
   const handleAddShift = (newShift: RupamShift) => {
-    setShifts([newShift, ...shifts]);
-    setStats((prev) => ({
-      ...prev,
+    saveDocumentToCloud(COLLECTIONS.SHIFTS, newShift);
+    const updatedStats = {
+      ...stats,
       rupamActive: newShift.reguName,
       danrupamActive: newShift.danrupamName,
-    }));
+    };
+    setStats(updatedStats);
+    saveStatsToCloud(updatedStats);
+  };
+
+  const handleAddOfficer = (newOfficer: SecurityOfficer) => {
+    saveDocumentToCloud(COLLECTIONS.OFFICERS, newOfficer);
+  };
+
+  const handleUpdateOfficer = (updatedOfficer: SecurityOfficer) => {
+    saveDocumentToCloud(COLLECTIONS.OFFICERS, updatedOfficer);
+  };
+
+  const handleDeleteOfficer = (id: string) => {
+    deleteDocumentFromCloud(COLLECTIONS.OFFICERS, id);
   };
 
   const handleEmergencyTrigger = (title: string, location: string) => {
@@ -204,7 +278,9 @@ export default function App() {
       isEmergency: true,
     });
 
-    setStats((prev) => ({ ...prev, currentSecurityLevel: 'BAHAYA' }));
+    const updatedStats = { ...stats, currentSecurityLevel: 'BAHAYA' as SecurityLevel };
+    setStats(updatedStats);
+    saveStatsToCloud(updatedStats);
   };
 
   return (
@@ -273,8 +349,8 @@ export default function App() {
                   : 'text-slate-300 hover:text-white hover:bg-slate-800'
               }`}
             >
-              <Building className="w-4 h-4" />
-              <span>Serah Terima RUPAM</span>
+              <Users className="w-4 h-4" />
+              <span>Data Petugas Keamanan</span>
             </button>
 
             <button
@@ -328,7 +404,14 @@ export default function App() {
         )}
 
         {activeTab === 'rupam' && (
-          <RupamShiftManager shifts={shifts} onAddShift={handleAddShift} />
+          <RupamShiftManager 
+            shifts={shifts} 
+            officers={officers}
+            onAddShift={handleAddShift} 
+            onAddOfficer={handleAddOfficer}
+            onUpdateOfficer={handleUpdateOfficer}
+            onDeleteOfficer={handleDeleteOfficer}
+          />
         )}
 
         {activeTab === 'ai-analyst' && (

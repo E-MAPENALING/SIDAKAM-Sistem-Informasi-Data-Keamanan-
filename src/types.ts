@@ -112,6 +112,18 @@ export interface ViolationRecord {
   kplpSignatureApproved: boolean;
 }
 
+export interface SecurityOfficer {
+  id: string;
+  nip: string;
+  name: string;
+  rank: string;
+  position: string;
+  regu: string;
+  status?: string;
+  phone: string;
+  photoUrl?: string;
+}
+
 export interface RupamShift {
   id: string;
   reguName: string;

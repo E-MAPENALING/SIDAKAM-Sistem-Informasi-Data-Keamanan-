@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { SecurityLevel } from '../types';
-import { ShieldAlert, ShieldCheck, Siren, Clock, UserCheck, Upload, RotateCcw } from 'lucide-react';
+import { ShieldAlert, ShieldCheck, Siren, Clock, UserCheck, Upload, RotateCcw, Cloud } from 'lucide-react';
 import { ImipasLogo, setStoredAppLogo, getStoredAppLogo } from './ImipasLogo';
 
 interface HeaderProps {
@@ -159,6 +159,16 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Status & Quick Emergency Tools */}
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+            {/* Realtime Cloud Sync Badge */}
+            <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-950/60 rounded-md border border-emerald-800/80 text-xs text-emerald-300 shadow-sm" title="Data tersinkron otomatis real-time antara HP & Laptop">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+              <Cloud className="w-3.5 h-3.5 text-emerald-400" />
+              <span className="font-bold text-[11px] tracking-wide hidden sm:inline">Sync Realtime HP & Web</span>
+            </div>
+
             {/* Clock */}
             <div className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 bg-slate-950/80 rounded-md border border-slate-800 text-xs text-slate-300">
               <Clock className="w-3.5 h-3.5 text-blue-400" />
