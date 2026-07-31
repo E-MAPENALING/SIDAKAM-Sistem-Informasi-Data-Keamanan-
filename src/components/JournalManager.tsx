@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { DailyJournalEntry } from '../types';
 import { ImipasLogo, ImipasLogoSVGString } from './ImipasLogo';
+import { compressImage } from '../lib/imageUtils';
 import { 
   BookOpen, 
   Plus, 
@@ -85,22 +86,22 @@ export const JournalManager: React.FC<JournalManagerProps> = ({
     }
   });
 
-  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const result = event.target?.result as string;
-        if (result) {
-          setCustomKopLogo(result);
+      try {
+        const compressed = await compressImage(file, 300, 300, 0.75);
+        if (compressed) {
+          setCustomKopLogo(compressed);
           try {
-            localStorage.setItem('kemenimipas_custom_kop_logo', result);
+            localStorage.setItem('kemenimipas_custom_kop_logo', compressed);
           } catch (err) {
             console.error('Failed to save custom logo:', err);
           }
         }
-      };
-      reader.readAsDataURL(file);
+      } catch (err) {
+        console.error('Failed to compress logo:', err);
+      }
     }
   };
 
@@ -116,22 +117,22 @@ export const JournalManager: React.FC<JournalManagerProps> = ({
     }
   };
 
-  const handleSignatureUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSignatureUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const result = event.target?.result as string;
-        if (result) {
-          setCustomSignature(result);
+      try {
+        const compressed = await compressImage(file, 400, 200, 0.75);
+        if (compressed) {
+          setCustomSignature(compressed);
           try {
-            localStorage.setItem('kemenimipas_custom_signature', result);
+            localStorage.setItem('kemenimipas_custom_signature', compressed);
           } catch (err) {
             console.error('Failed to save signature image:', err);
           }
         }
-      };
-      reader.readAsDataURL(file);
+      } catch (err) {
+        console.error('Failed to compress signature:', err);
+      }
     }
   };
 
@@ -191,16 +192,17 @@ export const JournalManager: React.FC<JournalManagerProps> = ({
     setShowModal(true);
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        if (typeof reader.result === 'string') {
-          setFormDocUrl(reader.result);
+      try {
+        const compressed = await compressImage(file, 600, 600, 0.75);
+        if (compressed) {
+          setFormDocUrl(compressed);
         }
-      };
-      reader.readAsDataURL(file);
+      } catch (err) {
+        console.error('Error uploading file/image:', err);
+      }
     }
   };
 

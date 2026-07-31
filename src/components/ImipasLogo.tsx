@@ -21,10 +21,14 @@ export const setStoredAppLogo = (logoData: string | null): void => {
   try {
     if (logoData) {
       localStorage.setItem(APP_LOGO_KEY, logoData);
-      saveDocumentToCloud(COLLECTIONS.SETTINGS, { id: 'app_logo', url: logoData });
+      saveDocumentToCloud(COLLECTIONS.SETTINGS, { id: 'app_logo', url: logoData }).catch(err => {
+        console.error('Failed to sync app logo to cloud:', err);
+      });
     } else {
       localStorage.removeItem(APP_LOGO_KEY);
-      deleteDocumentFromCloud(COLLECTIONS.SETTINGS, 'app_logo');
+      deleteDocumentFromCloud(COLLECTIONS.SETTINGS, 'app_logo').catch(err => {
+        console.error('Failed to delete app logo from cloud:', err);
+      });
     }
     window.dispatchEvent(new Event('app_logo_changed'));
   } catch (err) {

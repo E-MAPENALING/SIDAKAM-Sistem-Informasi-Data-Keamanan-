@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { SecurityLevel } from '../types';
 import { ShieldAlert, ShieldCheck, Siren, Clock, UserCheck, Upload, RotateCcw, Cloud } from 'lucide-react';
 import { ImipasLogo, setStoredAppLogo, getStoredAppLogo } from './ImipasLogo';
+import { compressImage } from '../lib/imageUtils';
 
 interface HeaderProps {
   securityLevel: SecurityLevel;
@@ -32,17 +33,18 @@ export const Header: React.FC<HeaderProps> = ({
     return () => window.removeEventListener('app_logo_changed', handleUpdate);
   }, []);
 
-  const handleAppLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAppLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const result = event.target?.result as string;
-        if (result) {
-          setStoredAppLogo(result);
+      try {
+        // Compress image to max 300x300, 0.75 quality (~20KB - 50KB)
+        const compressed = await compressImage(file, 300, 300, 0.75);
+        if (compressed) {
+          setStoredAppLogo(compressed);
         }
-      };
-      reader.readAsDataURL(file);
+      } catch (err) {
+        console.error('Error compressing logo:', err);
+      }
     }
   };
 

@@ -3,6 +3,7 @@ import { ViolationRecord } from '../types';
 import { Printer, Download, X, FileText, Upload, PenTool, RotateCcw } from 'lucide-react';
 import { ImipasLogo, setStoredAppLogo, getStoredAppLogo } from './ImipasLogo';
 import { getKopSuratHTML } from '../lib/kopSurat';
+import { compressImage } from '../lib/imageUtils';
 
 interface PrintReportModalProps {
   violation: ViolationRecord | null;
@@ -335,18 +336,18 @@ export const PrintReportModal: React.FC<PrintReportModalProps> = ({
 </html>`;
   };
 
-  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const result = event.target?.result as string;
-      if (result) {
-        setStoredAppLogo(result);
-        setAppLogoUrl(result);
+    try {
+      const compressed = await compressImage(file, 300, 300, 0.75);
+      if (compressed) {
+        setStoredAppLogo(compressed);
+        setAppLogoUrl(compressed);
       }
-    };
-    reader.readAsDataURL(file);
+    } catch (err) {
+      console.error('Error compressing logo:', err);
+    }
   };
 
   const handleResetLogo = () => {
@@ -354,22 +355,22 @@ export const PrintReportModal: React.FC<PrintReportModalProps> = ({
     setAppLogoUrl(null);
   };
 
-  const handleTtdUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleTtdUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const result = event.target?.result as string;
-      if (result) {
-        setKplpTtdUrl(result);
+    try {
+      const compressed = await compressImage(file, 400, 200, 0.75);
+      if (compressed) {
+        setKplpTtdUrl(compressed);
         try {
-          localStorage.setItem('kemenimipas_kplp_ttd', result);
+          localStorage.setItem('kemenimipas_kplp_ttd', compressed);
         } catch (err) {
           console.error('Error saving TTD:', err);
         }
       }
-    };
-    reader.readAsDataURL(file);
+    } catch (err) {
+      console.error('Error compressing TTD:', err);
+    }
   };
 
   const handleResetTtd = () => {
