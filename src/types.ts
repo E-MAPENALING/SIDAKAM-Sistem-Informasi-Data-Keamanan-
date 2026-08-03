@@ -3,7 +3,7 @@ export type SecurityLevel = 'KONDUSIF' | 'SIAGA' | 'BAHAYA';
 export type BlockLocation = 
   | 'Blok Alpha (Tahanan)'
   | 'Blok Beta (Narapidana Dewasa)'
-  | 'Blok Gamma (Wanita/Khusus)'
+  | 'Blok Edelweis (Wanita / Khusus)'
   | 'Blok Sel Isolasi / Tutupan Sunyi'
   | 'P2U (Pintu Utama)'
   | 'Pos Menara Atas'
@@ -152,6 +152,7 @@ export interface RoomDetail {
   maxCapacity: number;
   currentOccupants: number;
   description?: string;
+  notes?: string; // Keterangan manual per kamar (e.g. Kamar Tamping Blok, Kamar Lansia, dll)
 }
 
 export interface BlockRoomInfo {

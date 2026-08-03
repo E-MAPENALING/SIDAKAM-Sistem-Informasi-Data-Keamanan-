@@ -158,7 +158,7 @@ export const IncidentManager: React.FC<IncidentManagerProps> = ({
               <option value="ALL">Semua Lokasi</option>
               <option value="Blok Alpha (Tahanan)">Blok Alpha (Tahanan)</option>
               <option value="Blok Beta (Narapidana Dewasa)">Blok Beta (Napi)</option>
-              <option value="Blok Gamma (Wanita/Khusus)">Blok Gamma (Wanita)</option>
+              <option value="Blok Edelweis (Wanita / Khusus)">Blok Edelweis (Wanita)</option>
               <option value="Blok Sel Isolasi / Tutupan Sunyi">Sel Isolasi</option>
               <option value="P2U (Pintu Utama)">P2U (Pintu Utama)</option>
               <option value="Pos Menara Atas">Pos Menara Atas</option>
@@ -354,7 +354,7 @@ export const IncidentManager: React.FC<IncidentManagerProps> = ({
                   >
                     <option value="Blok Alpha (Tahanan)">Blok Alpha (Tahanan)</option>
                     <option value="Blok Beta (Narapidana Dewasa)">Blok Beta (Narapidana Dewasa)</option>
-                    <option value="Blok Gamma (Wanita/Khusus)">Blok Gamma (Wanita/Khusus)</option>
+                    <option value="Blok Edelweis (Wanita / Khusus)">Blok Edelweis (Wanita / Khusus)</option>
                     <option value="Blok Sel Isolasi / Tutupan Sunyi">Blok Sel Isolasi / Tutupan Sunyi</option>
                     <option value="P2U (Pintu Utama)">P2U (Pintu Utama)</option>
                     <option value="Pos Menara Atas">Pos Menara Atas</option>

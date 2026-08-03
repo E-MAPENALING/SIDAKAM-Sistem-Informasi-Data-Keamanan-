@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { SecurityStats, IncidentReport, ViolationRecord, BlockRoomInfo, InspectionDailyData, RoomDetail } from '../types';
 import { ImipasLogo } from './ImipasLogo';
+import { getKopSuratHTML } from '../lib/kopSurat';
+import { compressImage } from '../lib/imageUtils';
 import { 
   Users, 
   ShieldAlert, 
@@ -30,7 +32,11 @@ import {
   Layers,
   Download,
   FileSpreadsheet,
-  Printer
+  Printer,
+  Upload,
+  RotateCcw,
+  PenTool,
+  Filter
 } from 'lucide-react';
 
 interface DashboardOverviewProps {
@@ -47,7 +53,21 @@ interface DashboardOverviewProps {
 const DEFAULT_BLOCKS: BlockRoomInfo[] = [
   { id: 'blk-1', name: 'Blok Alpha (Tahanan)', roomCount: 8, maxPerRoom: 10, description: 'Kamar A-01 s/d A-08' },
   { id: 'blk-2', name: 'Blok Beta (Narapidana Dewasa)', roomCount: 14, maxPerRoom: 12, description: 'Kamar B-01 s/d B-14' },
-  { id: 'blk-3', name: 'Blok Gamma (Wanita/Khusus)', roomCount: 6, maxPerRoom: 8, description: 'Kamar G-01 s/d G-06' },
+  { 
+    id: 'blk-3', 
+    name: 'Blok Edelweis (Wanita / Khusus)', 
+    roomCount: 6, 
+    maxPerRoom: 8, 
+    description: 'Kamar E-01 s/d E-06 (Kamar Tamping Blok & Lansia)',
+    rooms: [
+      { id: 'blk-3-rm-1', name: 'Kamar E-01', maxCapacity: 8, currentOccupants: 10, notes: 'Kamar Tamping Blok' },
+      { id: 'blk-3-rm-2', name: 'Kamar E-02', maxCapacity: 8, currentOccupants: 12, notes: 'Kamar Tamping Dapur & Kebersihan' },
+      { id: 'blk-3-rm-3', name: 'Kamar E-03', maxCapacity: 8, currentOccupants: 8, notes: 'Kamar Pekerja / Asimilasi' },
+      { id: 'blk-3-rm-4', name: 'Kamar E-04', maxCapacity: 8, currentOccupants: 10, notes: 'Kamar Lansia & Disabilitas' },
+      { id: 'blk-3-rm-5', name: 'Kamar E-05', maxCapacity: 8, currentOccupants: 9, notes: 'Kamar Umum WBP' },
+      { id: 'blk-3-rm-6', name: 'Kamar E-06', maxCapacity: 8, currentOccupants: 8, notes: 'Kamar Pengasingan / Karantina' },
+    ]
+  },
   { id: 'blk-4', name: 'Blok Sel Isolasi / Tutupan Sunyi', roomCount: 4, maxPerRoom: 2, description: 'Kamar ISO-01 s/d ISO-04' },
 ];
 
@@ -93,6 +113,11 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
   const currentBlocks = stats.blocksInfo && stats.blocksInfo.length > 0 ? stats.blocksInfo : DEFAULT_BLOCKS;
   const [formBlocksList, setFormBlocksList] = useState<BlockRoomInfo[]>(currentBlocks);
 
+  // Search & Filter state for Detail Blok & Kamar Hunian
+  const [blockSearchTerm, setBlockSearchTerm] = useState('');
+  const [selectedBlockFilter, setSelectedBlockFilter] = useState('ALL');
+  const [blockStatusFilter, setBlockStatusFilter] = useState<'ALL' | 'OVER' | 'NORMAL'>('ALL');
+
   // Expanded state for room listings per block
   const [expandedBlocks, setExpandedBlocks] = useState<Record<string, boolean>>({
     'blk-1': true,
@@ -106,10 +131,12 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
   };
 
   const getRoomPrefix = (blkName: string, desc?: string) => {
+    if (desc && desc.includes('E-')) return 'E-';
     if (desc && desc.includes('A-')) return 'A-';
     if (desc && desc.includes('B-')) return 'B-';
     if (desc && desc.includes('G-')) return 'G-';
     if (desc && desc.includes('ISO-')) return 'ISO-';
+    if (blkName.toLowerCase().includes('edelweis') || blkName.toLowerCase().includes('edelwish')) return 'E-';
     if (blkName.toLowerCase().includes('alpha')) return 'A-';
     if (blkName.toLowerCase().includes('beta')) return 'B-';
     if (blkName.toLowerCase().includes('gamma')) return 'G-';
@@ -119,22 +146,39 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
 
   const getRoomsForBlock = (blk: BlockRoomInfo): RoomDetail[] => {
     if (blk.rooms && blk.rooms.length > 0) {
-      return blk.rooms.map((r) => ({
-        ...r,
-        currentOccupants: r.currentOccupants !== undefined ? r.currentOccupants : Math.round((r.maxCapacity || 10) * 1.5),
-      }));
+      return blk.rooms.map((r) => {
+        const noteVal = (r.notes || r.description || '').trim();
+        return {
+          ...r,
+          currentOccupants: r.currentOccupants !== undefined ? r.currentOccupants : Math.round((r.maxCapacity || 10) * 1.5),
+          notes: noteVal,
+          description: noteVal,
+        };
+      });
     }
     const maxPerRoom = Number(blk.maxPerRoom) || 10;
     const prefix = getRoomPrefix(blk.name, blk.description);
+    const isEdelweis = blk.name.toLowerCase().includes('edelweis') || blk.name.toLowerCase().includes('edelwish');
     return Array.from({ length: blk.roomCount }, (_, i) => {
       const num = String(i + 1).padStart(2, '0');
       const defaultCap = maxPerRoom;
       const defaultOcc = Math.round(defaultCap * 1.5);
+      let defaultNotes = '';
+      if (isEdelweis) {
+        if (i === 0) defaultNotes = 'Kamar Tamping Blok';
+        else if (i === 1) defaultNotes = 'Kamar Tamping Dapur & Kebersihan';
+        else if (i === 2) defaultNotes = 'Kamar Pekerja / Asimilasi';
+        else if (i === 3) defaultNotes = 'Kamar Lansia & Disabilitas';
+        else if (i === 4) defaultNotes = 'Kamar Umum WBP';
+        else if (i === 5) defaultNotes = 'Kamar Pengasingan / Karantina';
+      }
       return {
         id: `${blk.id}-rm-${i + 1}`,
         name: `Kamar ${prefix}${num}`,
         maxCapacity: defaultCap,
         currentOccupants: defaultOcc,
+        notes: defaultNotes,
+        description: defaultNotes,
       };
     });
   };
@@ -156,6 +200,22 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
   const [roomFormName, setRoomFormName] = useState<string>('');
   const [roomFormCap, setRoomFormCap] = useState<number>(10);
   const [roomFormOccupants, setRoomFormOccupants] = useState<number>(15);
+  const [roomFormNotes, setRoomFormNotes] = useState<string>('');
+
+  // State for Print Block & Kamar Report Modal with Officer & Signature
+  const [isPrintBlockModalOpen, setIsPrintBlockModalOpen] = useState<boolean>(false);
+  const [blockPejabatName, setBlockPejabatName] = useState<string>(() => {
+    return localStorage.getItem('kemenimipas_block_pejabat_name') || 'SIGIT, S.H., M.H.';
+  });
+  const [blockPejabatTitle, setBlockPejabatTitle] = useState<string>(() => {
+    return localStorage.getItem('kemenimipas_block_pejabat_title') || 'KA. KPLP LAPAS KELAS IIB BATANG';
+  });
+  const [blockPejabatNip, setBlockPejabatNip] = useState<string>(() => {
+    return localStorage.getItem('kemenimipas_block_pejabat_nip') || '19780512 200003 1 001';
+  });
+  const [blockPejabatTtd, setBlockPejabatTtd] = useState<string | null>(() => {
+    return localStorage.getItem('kemenimipas_kplp_ttd') || localStorage.getItem('kemenimipas_block_pejabat_ttd') || null;
+  });
 
   const handleOpenEditRoom = (blockId: string, blockName: string, room: RoomDetail) => {
     setRoomModal({
@@ -168,6 +228,7 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
     setRoomFormName(room.name);
     setRoomFormCap(room.maxCapacity);
     setRoomFormOccupants(room.currentOccupants ?? 0);
+    setRoomFormNotes(room.notes || room.description || '');
   };
 
   const handleOpenAddRoom = (blockId: string, blockName: string) => {
@@ -185,6 +246,7 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
     setRoomFormName(`Kamar ${prefix}${numStr}`);
     setRoomFormCap(defaultCap);
     setRoomFormOccupants(defaultCap);
+    setRoomFormNotes('');
   };
 
   const handleSaveRoom = (e: React.FormEvent) => {
@@ -203,6 +265,8 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
         name: roomFormName.trim() || `Kamar Baru`,
         maxCapacity: Number(roomFormCap) || 10,
         currentOccupants: Number(roomFormOccupants) || 0,
+        notes: roomFormNotes.trim(),
+        description: roomFormNotes.trim(),
       };
       updatedRooms = [...rooms, newRoom];
     } else {
@@ -213,6 +277,8 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
               name: roomFormName.trim() || r.name,
               maxCapacity: Number(roomFormCap) || 10,
               currentOccupants: Number(roomFormOccupants) || 0,
+              notes: roomFormNotes.trim(),
+              description: roomFormNotes.trim(),
             }
           : r
       );
@@ -310,7 +376,7 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
 
     rows.push([]);
     rows.push(['--- RINCIAN DETAIL SELURUH KAMAR HUNIAN PER BLOK ---']);
-    rows.push(['NO', 'NAMA BLOK', 'NAMA KAMAR / RUANG', 'PENGHUNI REAL (WBP)', 'KAPASITAS MAKSIMAL (WBP)', '% KETERISIAN', 'STATUS OVERCAPACITY']);
+    rows.push(['NO', 'NAMA BLOK', 'NAMA KAMAR / RUANG', 'KETERANGAN / CATATAN KHUSUS', 'PENGHUNI REAL (WBP)', 'KAPASITAS MAKSIMAL (WBP)', '% KETERISIAN', 'STATUS OVERCAPACITY']);
 
     let itemNo = 1;
     currentBlocks.forEach((blk) => {
@@ -326,6 +392,7 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
           itemNo.toString(),
           blk.name,
           rm.name,
+          rm.notes || rm.description || '-',
           `${occ} WBP`,
           `${cap} WBP`,
           `${rate}%`,
@@ -351,11 +418,51 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
   };
 
   const handlePrintBlocksReport = () => {
+    setIsPrintBlockModalOpen(true);
+  };
+
+  const handleUploadBlockTtd = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const compressed = await compressImage(file, 400, 200, 0.75);
+      if (compressed) {
+        setBlockPejabatTtd(compressed);
+        localStorage.setItem('kemenimipas_kplp_ttd', compressed);
+        localStorage.setItem('kemenimipas_block_pejabat_ttd', compressed);
+      }
+    } catch (err) {
+      console.error('Gagal mengunggah TTD:', err);
+    }
+  };
+
+  const handleResetBlockTtd = () => {
+    setBlockPejabatTtd(null);
+    localStorage.removeItem('kemenimipas_block_pejabat_ttd');
+  };
+
+  const handleSaveBlockPejabatInfo = () => {
+    localStorage.setItem('kemenimipas_block_pejabat_name', blockPejabatName);
+    localStorage.setItem('kemenimipas_block_pejabat_title', blockPejabatTitle);
+    localStorage.setItem('kemenimipas_block_pejabat_nip', blockPejabatNip);
+    if (blockPejabatTtd) {
+      localStorage.setItem('kemenimipas_kplp_ttd', blockPejabatTtd);
+      localStorage.setItem('kemenimipas_block_pejabat_ttd', blockPejabatTtd);
+    }
+  };
+
+  const doPrintBlocksReport = () => {
+    handleSaveBlockPejabatInfo();
     const today = new Date().toLocaleDateString('id-ID', {
       day: 'numeric',
       month: 'long',
       year: 'numeric',
     });
+
+    const kopHtml = getKopSuratHTML(
+      'REKAPITULASI DETAIL BLOK & KAMAR HUNIAN WARGA BINAAN PEMASYARAKATAN',
+      'LAPAS KELAS IIB BATANG'
+    );
 
     let htmlContent = `
       <!DOCTYPE html>
@@ -363,25 +470,26 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
         <head>
           <title>Rekapitulasi Blok & Kamar Hunian - Lapas Batang</title>
           <style>
-            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 25px; color: #0f172a; line-height: 1.4; }
+            @page {
+              size: A4 portrait;
+              margin: 1.5cm;
+            }
+            body { font-family: Arial, Helvetica, sans-serif; padding: 10px; color: #0f172a; line-height: 1.35; font-size: 10pt; }
             h2, h3 { margin: 4px 0; text-align: center; }
-            .header-box { text-align: center; border-bottom: 3px double #0f172a; padding-bottom: 12px; margin-bottom: 18px; }
-            table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 9.5pt; }
-            th, td { border: 1px solid #334155; padding: 6px 8px; text-align: left; }
-            th { background-color: #f1f5f9; text-align: center; font-weight: bold; color: #0f172a; }
+            table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 9.5pt; }
+            th, td { border: 1.5px solid #000; padding: 6px 8px; text-align: left; vertical-align: middle; }
+            th { background-color: #f1f5f9; text-align: center; font-weight: bold; color: #0f172a; text-transform: uppercase; }
             .center { text-align: center; }
-            .meta-grid { display: flex; justify-content: space-between; margin-bottom: 15px; font-size: 9.5pt; background: #f8fafc; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; }
-            .block-title { font-weight: bold; background-color: #e2e8f0; margin-top: 18px; padding: 8px 10px; border: 1px solid #334155; font-size: 10.5pt; }
+            .meta-grid { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 9.5pt; background: #f8fafc; padding: 8px 12px; border: 1.5px solid #000; }
+            .block-title { font-weight: bold; background-color: #e2e8f0; margin-top: 16px; padding: 6px 10px; border: 1.5px solid #000; font-size: 10pt; text-transform: uppercase; }
             .over-badge { color: #b91c1c; font-weight: bold; }
             .normal-badge { color: #047857; font-weight: bold; }
+            .signature-box { margin-top: 25px; display: flex; justify-content: flex-end; page-break-inside: avoid; }
+            .signature-content { text-align: center; width: 280px; font-size: 10pt; font-family: Arial, sans-serif; color: #000; }
           </style>
         </head>
         <body>
-          <div class="header-box">
-            <h2 style="font-size: 13pt; letter-spacing: 0.5px;">KEMENTERIAN IMIGRASI DAN PEMASYARAKATAN</h2>
-            <h3 style="font-size: 14pt; font-weight: 800;">LAPAS KELAS IIB BATANG</h3>
-            <p style="margin: 4px 0 0 0; font-size: 10pt; font-weight: bold; color: #334155;">REKAPITULASI DETAIL BLOK & KAMAR HUNIAN WARGA BINAAN PEMASYARAKATAN</p>
-          </div>
+          ${kopHtml}
 
           <div class="meta-grid">
             <div>
@@ -394,14 +502,14 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
             </div>
           </div>
 
-          <h3 style="text-align: left; font-size: 11pt; margin-top: 15px;">1. RINGKASAN REKAPITULASI PER BLOK HUNIAN</h3>
+          <h3 style="text-align: left; font-size: 10.5pt; margin-top: 12px; text-transform: uppercase; font-weight: 800;">1. RINGKASAN REKAPITULASI PER BLOK HUNIAN</h3>
           <table>
             <thead>
               <tr>
                 <th style="width: 35px;">NO</th>
                 <th>NAMA BLOK HUNIAN</th>
                 <th>TIPE / DESKRIPSI</th>
-                <th style="width: 80px;">JML KAMAR</th>
+                <th style="width: 90px;">JML KAMAR</th>
                 <th style="width: 100px;">PENGHUNI REAL</th>
                 <th style="width: 110px;">KAPASITAS MAKS</th>
                 <th style="width: 130px;">% KETERISIAN / OVER</th>
@@ -418,7 +526,7 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
       const over = rate - 100;
       htmlContent += `
         <tr>
-          <td class="center">${idx + 1}</td>
+          <td class="center" style="font-weight: bold;">${idx + 1}</td>
           <td><strong>${blk.name}</strong></td>
           <td>${blk.description || '-'}</td>
           <td class="center">${rooms.length} Kamar</td>
@@ -435,7 +543,7 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
             </tbody>
           </table>
 
-          <h3 style="text-align: left; font-size: 11pt; margin-top: 25px;">2. RINCIAN DETAIL KAMAR HUNIAN PER BLOK</h3>
+          <h3 style="text-align: left; font-size: 10.5pt; margin-top: 20px; text-transform: uppercase; font-weight: 800;">2. RINCIAN DETAIL KAMAR HUNIAN PER BLOK</h3>
     `;
 
     currentBlocks.forEach((blk) => {
@@ -447,16 +555,17 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
 
       htmlContent += `
         <div class="block-title">
-          ${blk.name} — ${rooms.length} Kamar | Penghuni Real: ${blockRealOcc} WBP | Kapasitas Maks: ${blockMaxCap} WBP (${rate}% - ${over > 0 ? `Overcapacity +${over}%` : 'Normal'})
+          ${blk.name} — ${rooms.length} KAMAR | PENGHUNI REAL: ${blockRealOcc} WBP | KAPASITAS MAKS: ${blockMaxCap} WBP (${rate}% - ${over > 0 ? `OVERCAPACITY +${over}%` : 'NORMAL'})
         </div>
         <table>
           <thead>
             <tr>
               <th style="width: 35px;">NO</th>
               <th>NAMA KAMAR / RUANG HUNIAN</th>
-              <th style="width: 130px;">PENGHUNI REAL</th>
-              <th style="width: 140px;">KAPASITAS MAKSIMAL</th>
-              <th style="width: 150px;">STATUS & % OVERCAPACITY</th>
+              <th>KETERANGAN / CATATAN KHUSUS</th>
+              <th style="width: 110px;">PENGHUNI REAL</th>
+              <th style="width: 120px;">KAPASITAS MAKSIMAL</th>
+              <th style="width: 140px;">STATUS & % OVERCAPACITY</th>
             </tr>
           </thead>
           <tbody>
@@ -470,8 +579,9 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
 
         htmlContent += `
           <tr>
-            <td class="center">${rIdx + 1}</td>
+            <td class="center" style="font-weight: bold;">${rIdx + 1}</td>
             <td><strong>${rm.name}</strong></td>
+            <td><span style="font-weight: 600; color: #1e1b4b;">${rm.notes || rm.description || '-'}</span></td>
             <td class="center"><strong>${occ} WBP</strong></td>
             <td class="center">${cap} WBP</td>
             <td class="center ${rmOver > 0 ? 'over-badge' : 'normal-badge'}">
@@ -488,20 +598,18 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
     });
 
     htmlContent += `
-          <br><br>
-          <table style="border: none; margin-top: 20px;">
-            <tr style="border: none;">
-              <td style="border: none; width: 60%;"></td>
-              <td style="border: none; text-align: center;">
-                Batang, ${today}<br>
-                Mengetahui,<br>
-                <strong>Kepala Kesatuan Pengamanan Lapas</strong>
-                <br><br><br><br>
-                <u><strong>NURIAKMAN, S.H.</strong></u><br>
-                NIP. 19780512 200003 1 001
-              </td>
-            </tr>
-          </table>
+          <div class="signature-box">
+            <div class="signature-content">
+              <div>Batang, ${today}</div>
+              <div style="margin-top: 3px;">Mengetahui,</div>
+              <div style="font-weight: bold; margin-top: 3px; text-transform: uppercase;">${blockPejabatTitle}</div>
+              <div style="height: 80px; display: flex; align-items: center; justify-content: center; margin: 6px 0;">
+                ${blockPejabatTtd ? `<img src="${blockPejabatTtd}" style="max-height: 75px; max-width: 220px; object-fit: contain;" alt="TTD" />` : `<div style="height: 60px;"></div>`}
+              </div>
+              <div style="font-weight: bold; text-decoration: underline; font-size: 10.5pt; text-transform: uppercase;">${blockPejabatName}</div>
+              <div style="margin-top: 2px;">NIP. ${blockPejabatNip}</div>
+            </div>
+          </div>
         </body>
       </html>
     `;
@@ -510,11 +618,12 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
     if (printWindow) {
       printWindow.document.write(htmlContent);
       printWindow.document.close();
-      printWindow.focus();
       setTimeout(() => {
+        printWindow.focus();
         printWindow.print();
-      }, 300);
+      }, 350);
     }
+    setIsPrintBlockModalOpen(false);
   };
 
   // Calculated values
@@ -966,179 +1075,384 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
         </div>
 
         {/* Grid per Blok & Rincian Kamar */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {currentBlocks.map((blk) => {
-            const roomList = getRoomsForBlock(blk);
-            const isExpanded = expandedBlocks[blk.id] ?? true;
-            const blockRealOcc = roomList.reduce((s, r) => s + (Number(r.currentOccupants) || 0), 0);
-            const blockMaxCap = roomList.reduce((s, r) => s + (Number(r.maxCapacity) || 10), 0);
-            const blockRate = blockMaxCap > 0 ? Math.round((blockRealOcc / blockMaxCap) * 100) : 0;
-            const blockOverPercent = blockRate - 100;
+        {(() => {
+          const isFilterActive = Boolean(blockSearchTerm.trim() || selectedBlockFilter !== 'ALL' || blockStatusFilter !== 'ALL');
+          const term = blockSearchTerm.trim().toLowerCase();
 
-            return (
-              <div
-                key={blk.id}
-                className="p-4 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-slate-50 transition-all flex flex-col justify-between space-y-3.5 shadow-2xs"
-              >
-                {/* Block Header Info */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-slate-200">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <DoorOpen className="w-4 h-4 text-indigo-600" />
-                      <h4 className="font-extrabold text-sm text-slate-900">{blk.name}</h4>
+          const totalFilteredRoomsCount = currentBlocks.reduce((acc, blk) => {
+            if (selectedBlockFilter !== 'ALL' && blk.id !== selectedBlockFilter) return acc;
+            const allRooms = getRoomsForBlock(blk);
+            const blockMatches = !term || blk.name.toLowerCase().includes(term) || (blk.description || '').toLowerCase().includes(term);
+
+            const matchingRooms = allRooms.filter((room) => {
+              const roomNameMatch = !term || room.name.toLowerCase().includes(term);
+              const noteMatch = !term || (room.notes || '').toLowerCase().includes(term) || (room.description || '').toLowerCase().includes(term);
+              const matchesSearch = blockMatches || roomNameMatch || noteMatch;
+
+              const occ = room.currentOccupants || 0;
+              const cap = room.maxCapacity || 10;
+              const isOver = occ > cap;
+
+              let matchesStatus = true;
+              if (blockStatusFilter === 'OVER') matchesStatus = isOver;
+              if (blockStatusFilter === 'NORMAL') matchesStatus = !isOver;
+
+              return matchesSearch && matchesStatus;
+            });
+
+            return acc + matchingRooms.length;
+          }, 0);
+
+          const filteredBlocks = currentBlocks.filter((blk) => {
+            if (selectedBlockFilter !== 'ALL' && blk.id !== selectedBlockFilter) {
+              return false;
+            }
+            const allRooms = getRoomsForBlock(blk);
+            const blockMatches = !term || blk.name.toLowerCase().includes(term) || (blk.description || '').toLowerCase().includes(term);
+
+            const matchingRooms = allRooms.filter((room) => {
+              const roomNameMatch = !term || room.name.toLowerCase().includes(term);
+              const noteMatch = !term || (room.notes || '').toLowerCase().includes(term) || (room.description || '').toLowerCase().includes(term);
+              const matchesSearch = blockMatches || roomNameMatch || noteMatch;
+
+              const occ = room.currentOccupants || 0;
+              const cap = room.maxCapacity || 10;
+              const isOver = occ > cap;
+
+              let matchesStatus = true;
+              if (blockStatusFilter === 'OVER') matchesStatus = isOver;
+              if (blockStatusFilter === 'NORMAL') matchesStatus = !isOver;
+
+              return matchesSearch && matchesStatus;
+            });
+
+            return matchingRooms.length > 0 || blockMatches;
+          });
+
+          return (
+            <div className="space-y-4">
+              {/* Toolbar Filter & Pencarian Detail Blok & Kamar */}
+              <div className="bg-slate-50/90 p-3.5 rounded-xl border border-slate-200 space-y-2.5 shadow-2xs">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                  {/* Search Input */}
+                  <div className="relative flex-1">
+                    <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <input
+                      type="text"
+                      value={blockSearchTerm}
+                      onChange={(e) => setBlockSearchTerm(e.target.value)}
+                      placeholder="Cari kamar, blok, atau catatan khusus (misal: E-01, Lansia, Tamping, Alpha)..."
+                      className="w-full pl-9 pr-8 py-2 bg-white border border-slate-300 rounded-lg text-xs font-semibold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 shadow-2xs"
+                    />
+                    {blockSearchTerm && (
+                      <button
+                        type="button"
+                        onClick={() => setBlockSearchTerm('')}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 rounded-full"
+                        title="Hapus pencarian"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    {/* Filter by Block */}
+                    <div className="flex items-center gap-1">
+                      <span className="text-[11px] font-bold text-slate-500 hidden lg:inline">Blok:</span>
+                      <select
+                        value={selectedBlockFilter}
+                        onChange={(e) => setSelectedBlockFilter(e.target.value)}
+                        className="bg-white border border-slate-300 text-slate-800 text-xs font-bold rounded-lg px-2.5 py-2 focus:outline-none focus:border-indigo-600 shadow-2xs cursor-pointer"
+                      >
+                        <option value="ALL">Semua Blok</option>
+                        {currentBlocks.map((b) => (
+                          <option key={b.id} value={b.id}>{b.name}</option>
+                        ))}
+                      </select>
                     </div>
-                    <p className="text-xs text-slate-500 mt-0.5">{blk.description || 'Kamar Hunian WBP'}</p>
-                  </div>
-                  <div className="flex items-center gap-1.5 shrink-0 self-start sm:self-auto">
-                    <span className="px-2.5 py-1 bg-indigo-600 text-white font-mono font-bold text-xs rounded-md shadow-2xs">
-                      {roomList.length} Kamar
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => handleOpenAddRoom(blk.id, blk.name)}
-                      className="flex items-center gap-1 px-2 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-xs rounded-md border border-emerald-200 transition-colors"
-                      title="Tambah Kamar Baru ke Blok Ini"
-                    >
-                      <Plus className="w-3 h-3 text-emerald-600" />
-                      <span>Tambah Kamar</span>
-                    </button>
-                  </div>
-                </div>
 
-                {/* Block Summary Bar with Real Occupants, Max Capacity & % Over */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs bg-white p-2.5 rounded-lg border border-slate-200">
-                  <div className="flex items-center justify-between px-1">
-                    <span className="text-slate-500">Penghuni Real:</span>
-                    <strong className="text-indigo-950 font-black">{blockRealOcc} WBP</strong>
-                  </div>
-                  <div className="flex items-center justify-between px-1 border-t sm:border-t-0 sm:border-l border-slate-200 pt-1 sm:pt-0">
-                    <span className="text-slate-500">Kapasitas Maks:</span>
-                    <strong className="text-slate-800 font-bold">{blockMaxCap} WBP</strong>
-                  </div>
-                  <div className="flex items-center justify-between px-1 border-t sm:border-t-0 sm:border-l border-slate-200 pt-1 sm:pt-0">
-                    <span className="text-slate-500">% Over Capacity:</span>
-                    {blockOverPercent > 0 ? (
-                      <span className="font-black text-[11px] text-rose-700 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200">
-                        {blockRate}% (+{blockOverPercent}% Over)
-                      </span>
-                    ) : (
-                      <span className="font-bold text-[11px] text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
-                        {blockRate}% (Normal)
-                      </span>
+                    {/* Filter by Overcapacity Status */}
+                    <div className="flex items-center gap-1">
+                      <span className="text-[11px] font-bold text-slate-500 hidden lg:inline">Status:</span>
+                      <select
+                        value={blockStatusFilter}
+                        onChange={(e) => setBlockStatusFilter(e.target.value as 'ALL' | 'OVER' | 'NORMAL')}
+                        className="bg-white border border-slate-300 text-slate-800 text-xs font-bold rounded-lg px-2.5 py-2 focus:outline-none focus:border-indigo-600 shadow-2xs cursor-pointer"
+                      >
+                        <option value="ALL">Semua Status Keterisian</option>
+                        <option value="OVER">⚠️ Overcapacity (&gt;100%)</option>
+                        <option value="NORMAL">✅ Normal (≤100%)</option>
+                      </select>
+                    </div>
+
+                    {/* Reset Filters button if any filter active */}
+                    {isFilterActive && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setBlockSearchTerm('');
+                          setSelectedBlockFilter('ALL');
+                          setBlockStatusFilter('ALL');
+                        }}
+                        className="flex items-center gap-1 px-2.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold rounded-lg border border-rose-200 transition-colors shrink-0"
+                        title="Reset Semua Filter"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" />
+                        <span>Reset</span>
+                      </button>
                     )}
                   </div>
                 </div>
 
-                {/* Toggle Button for Room Breakdown */}
-                <button
-                  type="button"
-                  onClick={() => toggleBlockExpanded(blk.id)}
-                  className="w-full flex items-center justify-between px-3 py-1.5 bg-slate-100 hover:bg-slate-200/80 text-slate-700 text-xs font-bold rounded-md transition-colors"
-                >
-                  <span className="flex items-center gap-1.5">
-                    <Layers className="w-3.5 h-3.5 text-indigo-600" />
-                    <span>Rincian Kamar Hunian ({roomList.length} Ruang Kamar)</span>
-                  </span>
-                  <div className="flex items-center gap-1 text-[11px] text-indigo-700 font-semibold">
-                    <span>{isExpanded ? 'Sembunyikan' : 'Tampilkan Detail'}</span>
-                    {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-                  </div>
-                </button>
-
-                {/* Expanded Grid of Rooms with Real Occupants, Max Cap & % Over */}
-                {isExpanded && (
-                  <div className="space-y-2 pt-1">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 max-h-72 overflow-y-auto pr-1 scrollbar-thin">
-                      {roomList.map((room) => {
-                        const occ = room.currentOccupants || 0;
-                        const cap = room.maxCapacity || 10;
-                        const rate = cap > 0 ? Math.round((occ / cap) * 100) : 0;
-                        const over = rate - 100;
-
-                        return (
-                          <div
-                            key={room.id}
-                            className="bg-white border border-slate-200 rounded-lg p-2.5 flex flex-col justify-between space-y-2 hover:border-indigo-300 hover:shadow-2xs transition-all group"
-                          >
-                            <div className="flex items-center justify-between gap-1">
-                              <span className="font-extrabold text-xs text-slate-900 truncate" title={room.name}>
-                                {room.name}
-                              </span>
-                              {/* Actions Menu: Edit & Hapus */}
-                              <div className="flex items-center gap-1 shrink-0 opacity-80 group-hover:opacity-100">
-                                <button
-                                  type="button"
-                                  onClick={() => handleOpenEditRoom(blk.id, blk.name, room)}
-                                  className="p-1 hover:bg-indigo-50 text-slate-500 hover:text-indigo-600 rounded transition-colors"
-                                  title={`Edit ${room.name}`}
-                                >
-                                  <Edit2 className="w-3 h-3" />
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleDeleteRoom(blk.id, room.id, room.name)}
-                                  className="p-1 hover:bg-red-50 text-slate-400 hover:text-red-600 rounded transition-colors"
-                                  title={`Hapus ${room.name}`}
-                                >
-                                  <Trash2 className="w-3 h-3" />
-                                </button>
-                              </div>
-                            </div>
-
-                            {/* Data Real Penghuni, Kapasitas Maksimal, and % Over */}
-                            <div className="space-y-1 text-[11px] border-t border-slate-100 pt-1.5">
-                              <div className="flex items-center justify-between">
-                                <span className="text-slate-500 font-medium">Penghuni Real:</span>
-                                <span className="font-black text-indigo-950 bg-indigo-50/80 px-1.5 py-0.5 rounded border border-indigo-100">
-                                  {occ} WBP
-                                </span>
-                              </div>
-
-                              <div className="flex items-center justify-between">
-                                <span className="text-slate-500 font-medium">Kapasitas Maks:</span>
-                                <span className="font-semibold text-slate-700">
-                                  {cap} WBP
-                                </span>
-                              </div>
-
-                              <div className="flex items-center justify-between border-t border-slate-100 pt-1 mt-1">
-                                <span className="text-[10px] text-slate-400 font-medium">% Keterisian:</span>
-                                {over > 0 ? (
-                                  <span className="inline-flex items-center gap-0.5 font-black text-[10px] text-rose-700 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200" title={`Overcapacity +${over}%`}>
-                                    <AlertTriangle className="w-2.5 h-2.5 text-rose-600 shrink-0" />
-                                    {rate}% (+{over}% Over)
-                                  </span>
-                                ) : occ === cap ? (
-                                  <span className="font-bold text-[10px] text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
-                                    100% (Penuh)
-                                  </span>
-                                ) : (
-                                  <span className="font-bold text-[10px] text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
-                                    {rate}% (Normal)
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-
-                      {/* Button to Add New Room */}
-                      <button
-                        type="button"
-                        onClick={() => handleOpenAddRoom(blk.id, blk.name)}
-                        className="border border-dashed border-indigo-300 hover:border-indigo-500 bg-indigo-50/40 hover:bg-indigo-50 rounded-lg p-2.5 flex items-center justify-center gap-1.5 text-xs font-bold text-indigo-700 transition-all min-h-[72px]"
-                      >
-                        <Plus className="w-3.5 h-3.5 text-indigo-600" />
-                        <span>+ Tambah Kamar</span>
-                      </button>
-                    </div>
+                {/* Active Filter Result Banner */}
+                {isFilterActive && (
+                  <div className="flex items-center justify-between bg-indigo-50/90 border border-indigo-200/80 rounded-lg px-3 py-1.5 text-xs text-indigo-950 font-semibold">
+                    <span className="flex items-center gap-1.5">
+                      <Filter className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                      <span>
+                        Hasil Pencarian/Filter: Menampilkan <strong>{totalFilteredRoomsCount} kamar</strong> dari total {totalRooms} kamar.
+                      </span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setBlockSearchTerm('');
+                        setSelectedBlockFilter('ALL');
+                        setBlockStatusFilter('ALL');
+                      }}
+                      className="text-indigo-700 hover:text-indigo-900 underline text-[11px] font-bold shrink-0 ml-2"
+                    >
+                      Bersihkan Filter
+                    </button>
                   </div>
                 )}
               </div>
-            );
-          })}
-        </div>
+
+              {/* Grid or Empty State */}
+              {filteredBlocks.length === 0 ? (
+                <div className="bg-slate-50 border border-dashed border-slate-300 rounded-xl p-8 text-center space-y-2">
+                  <Search className="w-8 h-8 text-slate-400 mx-auto" />
+                  <h4 className="text-sm font-bold text-slate-800">Tidak Ada Kamar / Blok yang Sesuai</h4>
+                  <p className="text-xs text-slate-500 max-w-md mx-auto">
+                    Pencarian kata kunci <span className="font-bold text-slate-700">"{blockSearchTerm}"</span> atau kriteria filter yang Anda pilih tidak menemukan hasil kamar.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setBlockSearchTerm('');
+                      setSelectedBlockFilter('ALL');
+                      setBlockStatusFilter('ALL');
+                    }}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-indigo-600 text-white text-xs font-bold rounded-lg hover:bg-indigo-700 transition-colors mt-2"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span>Reset Filter Pencarian</span>
+                  </button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  {filteredBlocks.map((blk) => {
+                    const allRoomsInBlock = getRoomsForBlock(blk);
+                    const blockMatches = !term || blk.name.toLowerCase().includes(term) || (blk.description || '').toLowerCase().includes(term);
+
+                    const roomList = allRoomsInBlock.filter((room) => {
+                      const roomNameMatch = !term || room.name.toLowerCase().includes(term);
+                      const noteMatch = !term || (room.notes || '').toLowerCase().includes(term) || (room.description || '').toLowerCase().includes(term);
+                      const matchesSearch = blockMatches || roomNameMatch || noteMatch;
+
+                      const occ = room.currentOccupants || 0;
+                      const cap = room.maxCapacity || 10;
+                      const isOver = occ > cap;
+
+                      let matchesStatus = true;
+                      if (blockStatusFilter === 'OVER') matchesStatus = isOver;
+                      if (blockStatusFilter === 'NORMAL') matchesStatus = !isOver;
+
+                      return matchesSearch && matchesStatus;
+                    });
+
+                    const isExpanded = isFilterActive ? true : (expandedBlocks[blk.id] ?? true);
+                    const blockRealOcc = roomList.reduce((s, r) => s + (Number(r.currentOccupants) || 0), 0);
+                    const blockMaxCap = roomList.reduce((s, r) => s + (Number(r.maxCapacity) || 10), 0);
+                    const blockRate = blockMaxCap > 0 ? Math.round((blockRealOcc / blockMaxCap) * 100) : 0;
+                    const blockOverPercent = blockRate - 100;
+
+                    return (
+                      <div
+                        key={blk.id}
+                        className="p-4 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-slate-50 transition-all flex flex-col justify-between space-y-3.5 shadow-2xs"
+                      >
+                        {/* Block Header Info */}
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-slate-200">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <DoorOpen className="w-4 h-4 text-indigo-600" />
+                              <h4 className="font-extrabold text-sm text-slate-900">{blk.name}</h4>
+                            </div>
+                            <p className="text-xs text-slate-500 mt-0.5">{blk.description || 'Kamar Hunian WBP'}</p>
+                          </div>
+                          <div className="flex items-center gap-1.5 shrink-0 self-start sm:self-auto">
+                            <span className="px-2.5 py-1 bg-indigo-600 text-white font-mono font-bold text-xs rounded-md shadow-2xs">
+                              {roomList.length} Kamar
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => handleOpenAddRoom(blk.id, blk.name)}
+                              className="flex items-center gap-1 px-2 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-xs rounded-md border border-emerald-200 transition-colors"
+                              title="Tambah Kamar Baru ke Blok Ini"
+                            >
+                              <Plus className="w-3 h-3 text-emerald-600" />
+                              <span>Tambah Kamar</span>
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Block Summary Bar with Real Occupants, Max Capacity & % Over */}
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs bg-white p-2.5 rounded-lg border border-slate-200">
+                          <div className="flex items-center justify-between px-1">
+                            <span className="text-slate-500">Penghuni Real:</span>
+                            <strong className="text-indigo-950 font-black">{blockRealOcc} WBP</strong>
+                          </div>
+                          <div className="flex items-center justify-between px-1 border-t sm:border-t-0 sm:border-l border-slate-200 pt-1 sm:pt-0">
+                            <span className="text-slate-500">Kapasitas Maks:</span>
+                            <strong className="text-slate-800 font-bold">{blockMaxCap} WBP</strong>
+                          </div>
+                          <div className="flex items-center justify-between px-1 border-t sm:border-t-0 sm:border-l border-slate-200 pt-1 sm:pt-0">
+                            <span className="text-slate-500">% Over Capacity:</span>
+                            {blockOverPercent > 0 ? (
+                              <span className="font-black text-[11px] text-rose-700 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200">
+                                {blockRate}% (+{blockOverPercent}% Over)
+                              </span>
+                            ) : (
+                              <span className="font-bold text-[11px] text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                                {blockRate}% (Normal)
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Toggle Button for Room Breakdown */}
+                        <button
+                          type="button"
+                          onClick={() => toggleBlockExpanded(blk.id)}
+                          className="w-full flex items-center justify-between px-3 py-1.5 bg-slate-100 hover:bg-slate-200/80 text-slate-700 text-xs font-bold rounded-md transition-colors"
+                        >
+                          <span className="flex items-center gap-1.5">
+                            <Layers className="w-3.5 h-3.5 text-indigo-600" />
+                            <span>Rincian Kamar Hunian ({roomList.length} Ruang Kamar)</span>
+                          </span>
+                          <div className="flex items-center gap-1 text-[11px] text-indigo-700 font-semibold">
+                            <span>{isExpanded ? 'Sembunyikan' : 'Tampilkan Detail'}</span>
+                            {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                          </div>
+                        </button>
+
+                        {/* Expanded Grid of Rooms with Real Occupants, Max Cap & % Over */}
+                        {isExpanded && (
+                          <div className="space-y-2 pt-1">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 max-h-72 overflow-y-auto pr-1 scrollbar-thin">
+                              {roomList.map((room) => {
+                                const occ = room.currentOccupants || 0;
+                                const cap = room.maxCapacity || 10;
+                                const rate = cap > 0 ? Math.round((occ / cap) * 100) : 0;
+                                const over = rate - 100;
+
+                                return (
+                                  <div
+                                    key={room.id}
+                                    className="bg-white border border-slate-200 rounded-lg p-2.5 flex flex-col justify-between space-y-2 hover:border-indigo-300 hover:shadow-2xs transition-all group"
+                                  >
+                                    <div className="flex items-center justify-between gap-1">
+                                      <div className="min-w-0 flex-1">
+                                        <span className="font-extrabold text-xs text-slate-900 truncate block" title={room.name}>
+                                          {room.name}
+                                        </span>
+                                        {(room.notes || room.description) && (
+                                          <span className="text-[10px] font-bold text-amber-900 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200/80 mt-0.5 inline-block truncate max-w-full" title={room.notes || room.description}>
+                                            {room.notes || room.description}
+                                          </span>
+                                        )}
+                                      </div>
+                                      {/* Actions Menu: Edit & Hapus */}
+                                      <div className="flex items-center gap-1 shrink-0 opacity-80 group-hover:opacity-100">
+                                        <button
+                                          type="button"
+                                          onClick={() => handleOpenEditRoom(blk.id, blk.name, room)}
+                                          className="p-1 hover:bg-indigo-50 text-slate-500 hover:text-indigo-600 rounded transition-colors"
+                                          title={`Edit ${room.name}`}
+                                        >
+                                          <Edit2 className="w-3 h-3" />
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => handleDeleteRoom(blk.id, room.id, room.name)}
+                                          className="p-1 hover:bg-red-50 text-slate-400 hover:text-red-600 rounded transition-colors"
+                                          title={`Hapus ${room.name}`}
+                                        >
+                                          <Trash2 className="w-3 h-3" />
+                                        </button>
+                                      </div>
+                                    </div>
+
+                                    {/* Data Real Penghuni, Kapasitas Maksimal, and % Over */}
+                                    <div className="space-y-1 text-[11px] border-t border-slate-100 pt-1.5">
+                                      <div className="flex items-center justify-between">
+                                        <span className="text-slate-500 font-medium">Penghuni Real:</span>
+                                        <span className="font-black text-indigo-950 bg-indigo-50/80 px-1.5 py-0.5 rounded border border-indigo-100">
+                                          {occ} WBP
+                                        </span>
+                                      </div>
+
+                                      <div className="flex items-center justify-between">
+                                        <span className="text-slate-500 font-medium">Kapasitas Maks:</span>
+                                        <span className="font-semibold text-slate-700">
+                                          {cap} WBP
+                                        </span>
+                                      </div>
+
+                                      <div className="flex items-center justify-between border-t border-slate-100 pt-1 mt-1">
+                                        <span className="text-[10px] text-slate-400 font-medium">% Keterisian:</span>
+                                        {over > 0 ? (
+                                          <span className="inline-flex items-center gap-0.5 font-black text-[10px] text-rose-700 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200" title={`Overcapacity +${over}%`}>
+                                            <AlertTriangle className="w-2.5 h-2.5 text-rose-600 shrink-0" />
+                                            {rate}% (+{over}% Over)
+                                          </span>
+                                        ) : occ === cap ? (
+                                          <span className="font-bold text-[10px] text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
+                                            100% (Penuh)
+                                          </span>
+                                        ) : (
+                                          <span className="font-bold text-[10px] text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                                            {rate}% (Normal)
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+
+                              {/* Button to Add New Room */}
+                              <button
+                                type="button"
+                                onClick={() => handleOpenAddRoom(blk.id, blk.name)}
+                                className="border border-dashed border-indigo-300 hover:border-indigo-500 bg-indigo-50/40 hover:bg-indigo-50 rounded-lg p-2.5 flex items-center justify-center gap-1.5 text-xs font-bold text-indigo-700 transition-all min-h-[72px]"
+                              >
+                                <Plus className="w-3.5 h-3.5 text-indigo-600" />
+                                <span>+ Tambah Kamar</span>
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })()}
       </div>
 
 
@@ -1601,6 +1915,59 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
                 </div>
               </div>
 
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                  Keterangan / Catatan Khusus Kamar (Input Manual):
+                </label>
+                <input
+                  type="text"
+                  value={roomFormNotes}
+                  onChange={(e) => setRoomFormNotes(e.target.value)}
+                  placeholder="Contoh: Kamar Tamping Blok, Kamar Pekerja Dapur, Kamar Lansia, dll"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm font-semibold text-slate-800 focus:bg-white focus:border-indigo-600 focus:outline-none"
+                />
+                <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                  <span className="text-[10px] text-slate-500 font-bold">Pilihan Cepat:</span>
+                  <button
+                    type="button"
+                    onClick={() => setRoomFormNotes('Kamar Tamping Blok')}
+                    className="text-[10px] font-bold bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 px-2 py-0.5 rounded transition-colors"
+                  >
+                    + Tamping Blok
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRoomFormNotes('Kamar Tamping Dapur')}
+                    className="text-[10px] font-bold bg-blue-50 hover:bg-blue-100 text-blue-900 border border-blue-200 px-2 py-0.5 rounded transition-colors"
+                  >
+                    + Tamping Dapur
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRoomFormNotes('Kamar Lansia & Disabilitas')}
+                    className="text-[10px] font-bold bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-200 px-2 py-0.5 rounded transition-colors"
+                  >
+                    + Lansia
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRoomFormNotes('Kamar Pekerja / Asimilasi')}
+                    className="text-[10px] font-bold bg-purple-50 hover:bg-purple-100 text-purple-900 border border-purple-200 px-2 py-0.5 rounded transition-colors"
+                  >
+                    + Pekerja
+                  </button>
+                  {roomFormNotes && (
+                    <button
+                      type="button"
+                      onClick={() => setRoomFormNotes('')}
+                      className="text-[10px] font-bold bg-slate-100 hover:bg-slate-200 text-slate-600 px-2 py-0.5 rounded transition-colors"
+                    >
+                      Hapus
+                    </button>
+                  )}
+                </div>
+              </div>
+
               {/* Live Overcapacity Preview Box inside Modal */}
               {(() => {
                 const cap = Number(roomFormCap) || 1;
@@ -1639,6 +2006,160 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Pengaturan Cetak Laporan Detail Blok & Kamar Hunian */}
+      {isPrintBlockModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 max-w-xl w-full p-6 space-y-5 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 bg-slate-100 text-slate-800 rounded-lg">
+                  <Printer className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900 text-base">Cetak Laporan Detail Blok & Kamar Hunian</h3>
+                  <p className="text-xs text-slate-500">Lengkapi data pejabat penandatangan dan unggah TTD digital sebelum mencetak</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsPrintBlockModalOpen(false)}
+                className="p-1.5 hover:bg-slate-100 text-slate-400 hover:text-slate-600 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {/* Nama Pejabat */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                  Nama Pejabat Penandatangan:
+                </label>
+                <input
+                  type="text"
+                  value={blockPejabatName}
+                  onChange={(e) => setBlockPejabatName(e.target.value)}
+                  placeholder="Contoh: SIGIT, S.H., M.H."
+                  className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm font-bold text-slate-800 focus:bg-white focus:border-indigo-600 focus:outline-none"
+                />
+              </div>
+
+              {/* Jabatan Pejabat */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                  Jabatan / Posisi Pejabat:
+                </label>
+                <input
+                  type="text"
+                  value={blockPejabatTitle}
+                  onChange={(e) => setBlockPejabatTitle(e.target.value)}
+                  placeholder="Contoh: KA. KPLP LAPAS KELAS IIB BATANG"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm font-bold text-slate-800 focus:bg-white focus:border-indigo-600 focus:outline-none"
+                />
+              </div>
+
+              {/* NIP Pejabat */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                  NIP / NRP Pejabat:
+                </label>
+                <input
+                  type="text"
+                  value={blockPejabatNip}
+                  onChange={(e) => setBlockPejabatNip(e.target.value)}
+                  placeholder="Contoh: 19780512 200003 1 001"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm font-bold text-slate-800 focus:bg-white focus:border-indigo-600 focus:outline-none"
+                />
+              </div>
+
+              {/* TTD Upload */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                  TTD Digital Pejabat (Unggah Gambar):
+                </label>
+                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex flex-col sm:flex-row items-center gap-4">
+                  <div className="w-36 h-20 bg-white border border-slate-300 rounded-lg flex items-center justify-center p-1 overflow-hidden shrink-0 shadow-xs relative">
+                    {blockPejabatTtd ? (
+                      <img src={blockPejabatTtd} alt="TTD Preview" className="max-h-full max-w-full object-contain" />
+                    ) : (
+                      <div className="text-center text-[11px] text-slate-400 font-medium">
+                        Belum ada TTD
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex-1 space-y-2 w-full">
+                    <div className="flex items-center gap-2">
+                      <label className="flex-1 cursor-pointer flex items-center justify-center gap-2 px-3 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold rounded-lg border border-indigo-200 transition-colors text-center">
+                        <Upload className="w-4 h-4 shrink-0" />
+                        <span>{blockPejabatTtd ? 'Ganti TTD' : 'Unggah TTD Digital'}</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleUploadBlockTtd}
+                          className="hidden"
+                        />
+                      </label>
+
+                      {blockPejabatTtd && (
+                        <button
+                          type="button"
+                          onClick={handleResetBlockTtd}
+                          className="px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-bold rounded-lg border border-rose-200 transition-colors flex items-center gap-1 shrink-0"
+                          title="Hapus TTD"
+                        >
+                          <RotateCcw className="w-3.5 h-3.5" />
+                          <span>Hapus</span>
+                        </button>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-slate-500">
+                      Format PNG/JPG transparan direkomendasikan. TTD akan otomatis tersimpan untuk laporan berikutnya.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Data Summary info box */}
+              <div className="p-3 bg-slate-100 rounded-xl border border-slate-200 text-xs space-y-1 text-slate-700 font-medium">
+                <div className="flex justify-between">
+                  <span>Total Penghuni Real:</span>
+                  <strong className="text-slate-900">{totalRealOccupants} WBP</strong>
+                </div>
+                <div className="flex justify-between">
+                  <span>Total Kamar Hunian:</span>
+                  <strong className="text-slate-900">{totalRooms} Ruang Kamar</strong>
+                </div>
+                <div className="flex justify-between">
+                  <span>Kapasitas Total & Status:</span>
+                  <strong className={totalOverPercent > 0 ? "text-rose-700" : "text-emerald-700"}>
+                    {totalMaxRoomCapacity} WBP ({totalOccupancyRate}% Keterisian)
+                  </strong>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setIsPrintBlockModalOpen(false)}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-lg transition-colors"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={doPrintBlocksReport}
+                className="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-lg flex items-center gap-2 shadow-sm transition-colors"
+              >
+                <Printer className="w-4 h-4" />
+                <span>Cetak Sekarang</span>
+              </button>
+            </div>
           </div>
         </div>
       )}

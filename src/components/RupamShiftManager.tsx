@@ -56,9 +56,25 @@ export const RupamShiftManager: React.FC<RupamShiftManagerProps> = ({
   const [formName, setFormName] = useState('');
   const [formRank, setFormRank] = useState('Penata Muda (III/a)');
   const [formPosition, setFormPosition] = useState('');
-  const [formRegu, setFormRegu] = useState('Regu III (Gamma)');
+  const [formRegu, setFormRegu] = useState('Regu I (Alpha)');
   const [formPhone, setFormPhone] = useState('');
   const [formPhotoUrl, setFormPhotoUrl] = useState('');
+
+  // Shift Form State
+  const [showShiftForm, setShowShiftForm] = useState(false);
+  const [reguName, setReguName] = useState('Regu I (Alpha)');
+  const [shiftType, setShiftType] = useState<'PAGI (07.00 - 13.00)' | 'SIANG (13.00 - 19.00)' | 'MALAM (19.00 - 07.00)'>('MALAM (19.00 - 07.00)');
+  const [danrupamName, setDanrupamName] = useState('NUR FAIZIN');
+  const [officerCount, setOfficerCount] = useState(9);
+  const [presentOfficers, setPresentOfficers] = useState(9);
+  const [wbpCountTahanan, setWbpCountTahanan] = useState(68);
+  const [wbpCountNapi, setWbpCountNapi] = useState(287);
+  const [weaponsLockers, setWeaponsLockers] = useState(true);
+  const [keysCheck, setKeysCheck] = useState(true);
+  const [htRadiosCount, setHtRadiosCount] = useState(12);
+  const [handcuffsCount, setHandcuffsCount] = useState(15);
+  const [cctvStatus, setCctvStatus] = useState<'Normal (24 Kamera Active)' | '2 Kamera Off (Perbaikan)' | 'Kritikal Gangguan'>('Normal (24 Kamera Active)');
+  const [handoverNotes, setHandoverNotes] = useState('');
 
   // Handle Photo File Upload with Canvas Compression (max 400x400 JPEG)
   const handlePhotoFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -109,7 +125,7 @@ export const RupamShiftManager: React.FC<RupamShiftManagerProps> = ({
       setFormName(officer.name || '');
       setFormRank(officer.rank || 'Penata Muda (III/a)');
       setFormPosition(officer.position || '');
-      setFormRegu(officer.regu || 'Regu III (Gamma)');
+      setFormRegu(officer.regu || 'Regu I (Alpha)');
       setFormPhone(officer.phone || '');
       setFormPhotoUrl(officer.photoUrl || '');
     } else {
@@ -118,7 +134,7 @@ export const RupamShiftManager: React.FC<RupamShiftManagerProps> = ({
       setFormName('');
       setFormRank('Penata Muda (III/a)');
       setFormPosition('');
-      setFormRegu('Regu III (Gamma)');
+      setFormRegu('Regu I (Alpha)');
       setFormPhone('');
       setFormPhotoUrl('');
     }
@@ -141,8 +157,6 @@ export const RupamShiftManager: React.FC<RupamShiftManagerProps> = ({
       derivedRegu = 'Regu I (Alpha)';
     } else if (posUpper.includes('RUPAM II') || posUpper.includes('BETA')) {
       derivedRegu = 'Regu II (Beta)';
-    } else if (posUpper.includes('RUPAM III') || posUpper.includes('GAMMA')) {
-      derivedRegu = 'Regu III (Gamma)';
     } else if (posUpper.includes('RUPAM IV') || posUpper.includes('DELTA')) {
       derivedRegu = 'Regu IV (Delta)';
     }
@@ -164,7 +178,7 @@ export const RupamShiftManager: React.FC<RupamShiftManagerProps> = ({
         name: formName.trim(),
         rank: formRank || 'Penata Muda (III/a)',
         position: formPosition.trim(),
-        regu: derivedRegu || 'Regu III (Gamma)',
+        regu: derivedRegu || 'Regu I (Alpha)',
         phone: formPhone || '0812-3456-7890',
         photoUrl: finalPhoto,
       });
@@ -385,7 +399,6 @@ export const RupamShiftManager: React.FC<RupamShiftManagerProps> = ({
                   <option value="Staf KPLP/Kamtib">Staf KPLP / Kamtib</option>
                   <option value="Regu I (Alpha)">Regu I (Alpha)</option>
                   <option value="Regu II (Beta)">Regu II (Beta)</option>
-                  <option value="Regu III (Gamma)">Regu III (Gamma)</option>
                   <option value="Regu IV (Delta)">Regu IV (Delta)</option>
                 </select>
 
@@ -520,7 +533,6 @@ export const RupamShiftManager: React.FC<RupamShiftManagerProps> = ({
                     >
                       <option value="Regu I (Alpha)">Regu I (Alpha)</option>
                       <option value="Regu II (Beta)">Regu II (Beta)</option>
-                      <option value="Regu III (Gamma)">Regu III (Gamma)</option>
                       <option value="Regu IV (Delta)">Regu IV (Delta)</option>
                     </select>
                   </div>
