@@ -166,20 +166,23 @@ export const RupamShiftManager: React.FC<RupamShiftManagerProps> = ({
     if (editingOfficer) {
       onUpdateOfficer({
         ...editingOfficer,
+        nip: formNip.trim() || editingOfficer.nip,
         name: formName.trim(),
+        rank: formRank.trim() || editingOfficer.rank || 'Penata Muda (III/a)',
         position: formPosition.trim(),
-        regu: derivedRegu,
+        regu: formRegu || derivedRegu,
+        phone: formPhone.trim() || editingOfficer.phone,
         photoUrl: finalPhoto,
       });
     } else {
       onAddOfficer({
         id: 'off-' + Date.now(),
-        nip: formNip || `199${Math.floor(Math.random() * 90 + 10)}0101 ${Math.floor(Math.random() * 900000 + 100000)}`,
+        nip: formNip.trim() || `199${Math.floor(Math.random() * 90 + 10)}0101 ${Math.floor(Math.random() * 900000 + 100000)}`,
         name: formName.trim(),
-        rank: formRank || 'Penata Muda (III/a)',
+        rank: formRank.trim() || 'Penata Muda (III/a)',
         position: formPosition.trim(),
-        regu: derivedRegu || 'Regu I (Alpha)',
-        phone: formPhone || '0812-3456-7890',
+        regu: formRegu || derivedRegu || 'Regu I (Alpha)',
+        phone: formPhone.trim() || '0812-3456-7890',
         photoUrl: finalPhoto,
       });
     }
@@ -826,15 +829,80 @@ export const RupamShiftManager: React.FC<RupamShiftManagerProps> = ({
                 />
               </div>
 
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-700 font-bold mb-1">NIP (Nomor Induk Pegawai)</label>
+                  <input
+                    type="text"
+                    placeholder="Contoh: 19850101 200801 1 001"
+                    value={formNip}
+                    onChange={(e) => setFormNip(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-slate-800 font-bold focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-700 font-bold mb-1">Pangkat / Golongan</label>
+                  <input
+                    type="text"
+                    list="rank-options"
+                    placeholder="Pilih atau ketik Pangkat/Gol"
+                    value={formRank}
+                    onChange={(e) => setFormRank(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-slate-800 font-bold focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <datalist id="rank-options">
+                    <option value="Pembina Utama (IV/e)" />
+                    <option value="Pembina Utama Muda (IV/c)" />
+                    <option value="Pembina (IV/a)" />
+                    <option value="Penata Tk. I (III/d)" />
+                    <option value="Penata (III/c)" />
+                    <option value="Penata Muda Tk. I (III/b)" />
+                    <option value="Penata Muda (III/a)" />
+                    <option value="Pengatur Tk. I (II/d)" />
+                    <option value="Pengatur (II/c)" />
+                    <option value="Pengatur Muda Tk. I (II/b)" />
+                    <option value="Pengatur Muda (II/a)" />
+                  </datalist>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-700 font-bold mb-1">Jabatan / Pos Penjagaan</label>
+                  <input
+                    type="text"
+                    placeholder="Contoh: Ka. KPLP, Staf KPLP, Karupam I, Wakarupam I, Danrupam, Petugas P2U"
+                    value={formPosition}
+                    onChange={(e) => setFormPosition(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-slate-800 font-bold focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-700 font-bold mb-1">Regu / Unit Kerja</label>
+                  <select
+                    value={formRegu}
+                    onChange={(e) => setFormRegu(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-slate-800 font-bold focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="Staf KPLP/Kamtib">Staf KPLP/Kamtib</option>
+                    <option value="Regu I (Alpha)">Regu I (Alpha)</option>
+                    <option value="Regu II (Beta)">Regu II (Beta)</option>
+                    <option value="Regu IV (Delta)">Regu IV (Delta)</option>
+                  </select>
+                </div>
+              </div>
+
               <div>
-                <label className="block text-slate-700 font-bold mb-1">Jabatan / Pos Penjagaan</label>
+                <label className="block text-slate-700 font-bold mb-1">No. HP / WhatsApp (Kontak Darurat)</label>
                 <input
                   type="text"
-                  placeholder="Contoh: Ka. KPLP, Staf KPLP, Karupam I, Wakarupam I, Danrupam, Petugas P2U"
-                  value={formPosition}
-                  onChange={(e) => setFormPosition(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-slate-800 font-bold focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
+                  placeholder="Contoh: 0812-3456-7890"
+                  value={formPhone}
+                  onChange={(e) => setFormPhone(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-slate-800 font-bold focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
 

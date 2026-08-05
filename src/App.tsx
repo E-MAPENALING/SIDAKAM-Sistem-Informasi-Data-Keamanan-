@@ -396,6 +396,10 @@ export default function App() {
             stats={stats}
             incidents={incidents}
             violations={violations}
+            officers={officers}
+            onUpdateOfficer={handleUpdateOfficer}
+            onAddOfficer={handleAddOfficer}
+            onDeleteOfficer={handleDeleteOfficer}
             onNavigateTab={(t) => setActiveTab(t as any)}
             onQuickAddIncident={() => setActiveTab('journal')}
             onQuickAddViolation={() => setActiveTab('violations')}

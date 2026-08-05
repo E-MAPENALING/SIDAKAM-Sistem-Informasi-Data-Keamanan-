@@ -119,9 +119,14 @@ export interface SecurityOfficer {
   rank: string;
   position: string;
   regu: string;
-  status?: string;
+  status?: 'HADIR_DINAS' | 'LEPAS_DINAS' | 'CUTI' | 'IZIN' | 'SAKIT' | string;
   phone: string;
   photoUrl?: string;
+  leaveStartDate?: string;
+  leaveEndDate?: string;
+  leaveType?: 'Cuti Tahunan' | 'Cuti Alasan Penting' | 'Cuti Sakit' | 'Cuti Melahirkan' | 'Cuti Besar' | string;
+  leaveReason?: string;
+  leaveDocNumber?: string;
 }
 
 export interface RupamShift {
