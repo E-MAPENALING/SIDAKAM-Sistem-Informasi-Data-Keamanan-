@@ -219,3 +219,39 @@ export interface InmateBehaviorRecord {
   followUpAction?: string;
   createdAt?: string;
 }
+
+export type RiskLevel = 'SANGAT_TINGGI' | 'TINGGI' | 'SEDANG' | 'RENDAH';
+
+export type ProfilingCategory = 
+  | 'PROFIL_RISIKO_KEAMANAN'
+  | 'PSIKOLOGI_DAN_KARAKTER'
+  | 'REKAM_JEJAK_LOKAL'
+  | 'AFILIASI_DAN_JARINGAN'
+  | 'MEDIS_DAN_RIWAYAT_KESEHATAN'
+  | 'REKOMENDASI_PEMBINAAN';
+
+export interface InmateProfilingRecord {
+  id: string;
+  wbpId: string;
+  wbpName: string;
+  wbpRegNumber: string;
+  status: WBPStatus; // 'TAHANAN' | 'NARAPIDANA'
+  block: BlockLocation;
+  roomNumber: string;
+  crime: string;
+  sentence: string;
+  assessmentDate: string; // YYYY-MM-DD
+  profilingCategory: ProfilingCategory;
+  riskLevel: RiskLevel;
+  psychologicalProfile: string; // e.g. Kooperatif, Pendiam, Emosional, Manipulatif
+  securityRiskNotes: string; // Analisis risiko keamanan & potensi gangguan
+  socialBehaviorNotes: string; // Interaksi sosial antar sesama WBP
+  affiliationNotes?: string; // Jaringan/Geng/Kelompok
+  specialNeeds?: string; // Perhatian khusus (kesehatan, fobia, kecenderungan depresi)
+  recommendation: string; // Rekomendasi penempatan & pengawasan
+  assessorName: string; // Nama Petugas/Assessor/Tim Profiling
+  assessorRole?: string; // Jabatan Petugas
+  tags?: string[];
+  createdAt?: string;
+}
+

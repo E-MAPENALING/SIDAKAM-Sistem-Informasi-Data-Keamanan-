@@ -9,7 +9,8 @@ import {
   RupamShift,
   SecurityOfficer,
   IncidentStatus,
-  InmateBehaviorRecord
+  InmateBehaviorRecord,
+  InmateProfilingRecord
 } from './types';
 import { 
   INITIAL_SECURITY_STATS, 
@@ -19,7 +20,8 @@ import {
   INITIAL_VIOLATIONS, 
   INITIAL_RUPAM_SHIFTS,
   INITIAL_OFFICERS,
-  INITIAL_BEHAVIOR_RECORDS
+  INITIAL_BEHAVIOR_RECORDS,
+  INITIAL_PROFILING_RECORDS
 } from './data/mockData';
 import { 
   seedInitialDataIfEmpty, 
@@ -41,6 +43,7 @@ import { IncidentManager } from './components/IncidentManager';
 import { ViolationRegisterF } from './components/ViolationRegisterF';
 import { RupamShiftManager } from './components/RupamShiftManager';
 import { InmateBehaviorManager } from './components/InmateBehaviorManager';
+import { InmateProfilingManager } from './components/InmateProfilingManager';
 import { AiSecurityAnalyst } from './components/AiSecurityAnalyst';
 import { EmergencyPanicModal } from './components/EmergencyPanicModal';
 import { PrintReportModal } from './components/PrintReportModal';
@@ -53,11 +56,12 @@ import {
   Users, 
   Sparkles, 
   Radio,
-  ClipboardList
+  ClipboardList,
+  Brain
 } from 'lucide-react';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'overview' | 'journal' | 'violations' | 'rupam' | 'behavior' | 'ai-analyst'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'journal' | 'violations' | 'rupam' | 'behavior' | 'profiling' | 'ai-analyst'>('overview');
 
   // Application Data States
   const [stats, setStats] = useState<SecurityStats>(INITIAL_SECURITY_STATS);
@@ -68,6 +72,7 @@ export default function App() {
   const [shifts, setShifts] = useState<RupamShift[]>(INITIAL_RUPAM_SHIFTS);
   const [officers, setOfficers] = useState<SecurityOfficer[]>(INITIAL_OFFICERS);
   const [behaviorRecords, setBehaviorRecords] = useState<InmateBehaviorRecord[]>(INITIAL_BEHAVIOR_RECORDS);
+  const [profilingRecords, setProfilingRecords] = useState<InmateProfilingRecord[]>(INITIAL_PROFILING_RECORDS);
 
   // Modals State
   const [isEmergencyModalOpen, setIsEmergencyModalOpen] = useState(false);
@@ -132,6 +137,13 @@ export default function App() {
       INITIAL_BEHAVIOR_RECORDS
     );
 
+    // Subscribe to Profiling Records
+    const unsubProfiling = subscribeToCollection<InmateProfilingRecord>(
+      COLLECTIONS.PROFILING_NOTES,
+      setProfilingRecords,
+      INITIAL_PROFILING_RECORDS
+    );
+
     // Subscribe to App Logo settings across devices
     const logoDocRef = doc(db, COLLECTIONS.SETTINGS, 'app_logo');
     const unsubLogo = onSnapshot(logoDocRef, (snapshot) => {
@@ -156,9 +168,28 @@ export default function App() {
       unsubShifts();
       unsubOfficers();
       unsubBehavior();
+      unsubProfiling();
       unsubLogo();
     };
   }, []);
+
+  // Handlers for Profiling Records
+  const handleAddProfilingRecord = (recordData: Omit<InmateProfilingRecord, 'id'>) => {
+    const newRecord: InmateProfilingRecord = {
+      ...recordData,
+      id: 'prof-' + Date.now(),
+      createdAt: new Date().toISOString(),
+    };
+    saveDocumentToCloud(COLLECTIONS.PROFILING_NOTES, newRecord);
+  };
+
+  const handleUpdateProfilingRecord = (updatedRecord: InmateProfilingRecord) => {
+    saveDocumentToCloud(COLLECTIONS.PROFILING_NOTES, updatedRecord);
+  };
+
+  const handleDeleteProfilingRecord = (id: string) => {
+    deleteDocumentFromCloud(COLLECTIONS.PROFILING_NOTES, id);
+  };
 
   // Handlers for Behavior Records
   const handleAddBehaviorRecord = (recordData: Omit<InmateBehaviorRecord, 'id'>) => {
@@ -499,6 +530,19 @@ export default function App() {
             </button>
 
             <button
+              id="tab-profiling"
+              onClick={() => setActiveTab('profiling')}
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-lg font-bold transition-all shrink-0 ${
+                activeTab === 'profiling'
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'text-slate-300 hover:text-blue-300 hover:bg-slate-800'
+              }`}
+            >
+              <Brain className="w-4 h-4 text-blue-400" />
+              <span>Catatan Profiling Tahanan/Narapidana</span>
+            </button>
+
+            <button
               id="tab-ai-analyst"
               onClick={() => setActiveTab('ai-analyst')}
               className={`flex items-center gap-2 px-3.5 py-2 rounded-lg font-bold transition-all shrink-0 ${
@@ -578,6 +622,16 @@ export default function App() {
           />
         )}
 
+        {activeTab === 'profiling' && (
+          <InmateProfilingManager
+            wbpList={wbpList}
+            profilingRecords={profilingRecords}
+            onAddProfilingRecord={handleAddProfilingRecord}
+            onUpdateProfilingRecord={handleUpdateProfilingRecord}
+            onDeleteProfilingRecord={handleDeleteProfilingRecord}
+          />
+        )}
+
         {activeTab === 'ai-analyst' && (
           <AiSecurityAnalyst stats={stats} incidents={incidents} violations={violations} />
         )}
@@ -605,6 +659,7 @@ export default function App() {
       {/* Print BAP Modal */}
       <PrintReportModal
         violation={selectedBapForPrint}
+        profilingRecords={profilingRecords}
         onClose={() => setSelectedBapForPrint(null)}
       />
 

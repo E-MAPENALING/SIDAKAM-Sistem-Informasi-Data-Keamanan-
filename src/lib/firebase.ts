@@ -28,7 +28,8 @@ import {
   INITIAL_VIOLATIONS, 
   INITIAL_RUPAM_SHIFTS,
   INITIAL_OFFICERS,
-  INITIAL_BEHAVIOR_RECORDS
+  INITIAL_BEHAVIOR_RECORDS,
+  INITIAL_PROFILING_RECORDS
 } from '../data/mockData';
 
 // Initialize Firebase App
@@ -49,6 +50,7 @@ export const COLLECTIONS = {
   SHIFTS: 'rupam_shifts',
   OFFICERS: 'security_officers',
   BEHAVIOR_NOTES: 'inmate_behavior_notes',
+  PROFILING_NOTES: 'wbp_profiling_notes',
   SETTINGS: 'app_settings',
 };
 
@@ -91,6 +93,10 @@ export async function seedInitialDataIfEmpty() {
       // Seed Behavior Records
       INITIAL_BEHAVIOR_RECORDS.forEach((item) => {
         batch.set(doc(db, COLLECTIONS.BEHAVIOR_NOTES, item.id), item);
+      });
+      // Seed Profiling Records
+      INITIAL_PROFILING_RECORDS.forEach((item) => {
+        batch.set(doc(db, COLLECTIONS.PROFILING_NOTES, item.id), item);
       });
 
       await batch.commit();

@@ -1,4 +1,4 @@
-import { IncidentReport, WBPRecord, ViolationRecord, RupamShift, SecurityStats, DailyJournalEntry, SecurityOfficer, InmateBehaviorRecord } from '../types';
+import { IncidentReport, WBPRecord, ViolationRecord, RupamShift, SecurityStats, DailyJournalEntry, SecurityOfficer, InmateBehaviorRecord, InmateProfilingRecord } from '../types';
 
 export const INITIAL_DAILY_JOURNAL: DailyJournalEntry[] = [
   {
@@ -608,4 +608,80 @@ export const INITIAL_BEHAVIOR_RECORDS: InmateBehaviorRecord[] = [
     followUpAction: 'Pemantauan Berkelanjutan oleh Petugas Blok',
   }
 ];
+
+export const INITIAL_PROFILING_RECORDS: InmateProfilingRecord[] = [
+  {
+    id: 'prof-001',
+    wbpId: 'wbp-002',
+    wbpName: 'Slamet Raharjo bin Suparman',
+    wbpRegNumber: 'A.III.008/2026',
+    status: 'TAHANAN',
+    block: 'Blok Alpha (Tahanan)',
+    roomNumber: 'A-02',
+    crime: 'Pencurian dengan Pemberatan (Pasal 363 KUHP)',
+    sentence: 'Proses Persidangan PN Batang',
+    assessmentDate: '2026-08-01',
+    profilingCategory: 'PROFIL_RISIKO_KEAMANAN',
+    riskLevel: 'SEDANG',
+    psychologicalProfile: 'Kooperatif namun cenderung emosional saat tertekan',
+    securityRiskNotes: 'Tahanan baru masuk 6 bulan. Tidak memiliki rekam jejak pelarian, namun berpotensi terpengaruh oleh kelompok senior di Blok Alpha. Perlu pengawasan interaksi harian.',
+    socialBehaviorNotes: 'Aktif berinteraksi dengan sesama tahanan perkara umum di Kamar A-02. Mengikuti kegiatan keagamaan rutin di Masjid Lapas.',
+    affiliationNotes: 'Tidak terafiliasi dengan jaringan kejahatan terorganisir/geng lokal.',
+    specialNeeds: 'Riwayat medis maag kronis; membutuhkan obat rutin dari Poliklinik Lapas.',
+    recommendation: 'Ditempatkan di Kamar Tahanan Umum (A-02). Dilakukan konseling psikologis berkala oleh Wali Pemasyarakatan.',
+    assessorName: 'DODI, S.H.',
+    assessorRole: 'Tim Profiling & Wali Pemasyarakatan',
+    tags: ['Tahanan Baru', 'Risiko Sedang', 'Perlu Konseling'],
+    createdAt: '2026-08-01T08:00:00Z',
+  },
+  {
+    id: 'prof-002',
+    wbpId: 'wbp-001',
+    wbpName: 'Agus Supriyanto bin Sukirman',
+    wbpRegNumber: 'BI.014/2025',
+    status: 'NARAPIDANA',
+    block: 'Blok Sel Isolasi / Tutupan Sunyi',
+    roomNumber: 'ISO-01',
+    crime: 'Narkotika (Pasal 114 UU No. 35/2009)',
+    sentence: '5 Tahun 6 Bulan',
+    assessmentDate: '2026-07-28',
+    profilingCategory: 'PROFIL_RISIKO_KEAMANAN',
+    riskLevel: 'SANGAT_TINGGI',
+    psychologicalProfile: 'Manipulatif, tertutup, dan berorientasi jaringan/kelompok luar',
+    securityRiskNotes: 'Pernah terbukti membawa & menyembunyikan Smartphone di dalam kasur. Memiliki pengaruh di kalangan narapidana kasus Narkotika. Potensi tinggi memicu gangguan kamtib.',
+    socialBehaviorNotes: 'Cenderung membentuk kelompok eksklusif di dalam blok. Kerap mencoba mempengaruhi WBP muda.',
+    affiliationNotes: 'Indikasi terhubung dengan jaringan peredaran narkoba lokal di wilayah Pekalongan-Batang.',
+    specialNeeds: 'Pengawasan ketat P2U saat menerima kunjungan/barang titipan keluarga. Sterilisasi kamar berkala.',
+    recommendation: 'Penempatan di Kamar Sel Isolasi Tutupan Sunyi (ISO-01) selama sanksi Register F aktif. Pembatasan akses komunikasi luar dan kontrol ketat tiap shift RUPAM.',
+    assessorName: 'Sutrisno, S.AP',
+    assessorRole: 'Petugas Intelijen KPLP',
+    tags: ['Risiko Sangat Tinggi', 'Residivis HP', 'Pengawasan Ketat'],
+    createdAt: '2026-07-28T10:30:00Z',
+  },
+  {
+    id: 'prof-003',
+    wbpId: 'wbp-003',
+    wbpName: 'Bambang Hermawan bin H. Ahmad',
+    wbpRegNumber: 'BI.089/2025',
+    status: 'NARAPIDANA',
+    block: 'Blok Beta (Narapidana Dewasa)',
+    roomNumber: 'B-08',
+    crime: 'Penggelapan (Pasal 372 KUHP)',
+    sentence: '2 Tahun',
+    assessmentDate: '2026-08-05',
+    profilingCategory: 'REKOMENDASI_PEMBINAAN',
+    riskLevel: 'RENDAH',
+    psychologicalProfile: 'Sangat tenang, ramah, jujur, dan berpendidikan tinggi',
+    securityRiskNotes: 'Tingkat risiko keamanan sangat rendah. Patuh pada seluruh tata tertib Lapas dan aktif membantu ketertiban kamar.',
+    socialBehaviorNotes: 'Dihormati oleh sesama WBP di Blok Beta. Sering memberikan bimbingan positif bagi sesama warga binaan.',
+    affiliationNotes: 'Nihil afiliasi negatif.',
+    specialNeeds: 'Keterampilan manajemen & pertanian tinggi; cocok diberdayakan dalam Kegiatan Kerja Asimilasi.',
+    recommendation: 'Diusulkan menjadi Tamping Kegiatan Kerja / Pertanian Lapas. Memenuhi syarat administratif & substantif untuk program Asimilasi / PB.',
+    assessorName: 'BAMBANG HERMANTO, A.Md.IP',
+    assessorRole: 'Pembina Kegiatan Kerja & KPLP',
+    tags: ['Risiko Rendah', 'Calon Tamping', 'Siap Asimilasi'],
+    createdAt: '2026-08-05T09:15:00Z',
+  }
+];
+
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ViolationRecord } from '../types';
+import { ViolationRecord, InmateProfilingRecord } from '../types';
 import { Printer, Download, X, FileText, Upload, PenTool, RotateCcw } from 'lucide-react';
 import { ImipasLogo, setStoredAppLogo, getStoredAppLogo } from './ImipasLogo';
 import { getKopSuratHTML } from '../lib/kopSurat';
@@ -7,6 +7,7 @@ import { compressImage } from '../lib/imageUtils';
 
 interface PrintReportModalProps {
   violation: ViolationRecord | null;
+  profilingRecords?: InmateProfilingRecord[];
   onClose: () => void;
 }
 
@@ -30,10 +31,16 @@ const formatDateIndonesian = (dateStr?: string) => {
 
 export const PrintReportModal: React.FC<PrintReportModalProps> = ({
   violation,
+  profilingRecords = [],
   onClose,
 }) => {
   const [infoSource, setInfoSource] = useState<string>('.......................');
   const [infoSubject, setInfoSubject] = useState<string>('.......................');
+
+  const matchingProfile = violation ? profilingRecords.find(p => 
+    p.wbpRegNumber === violation.wbpRegNumber || 
+    p.wbpName.toLowerCase() === violation.wbpName.toLowerCase()
+  ) : null;
   
   // Custom Logo and Signature states
   const [appLogoUrl, setAppLogoUrl] = useState<string | null>(getStoredAppLogo);
@@ -282,6 +289,21 @@ export const PrintReportModal: React.FC<PrintReportModalProps> = ({
       <td style="white-space: pre-line;">${violation.violationDetail}</td>
     </tr>
   </table>
+
+  ${matchingProfile ? `
+  <div style="margin-top: 12px; border: 1px solid #1e293b; border-radius: 6px; padding: 10px; background-color: #f8fafc;">
+    <div style="font-weight: bold; font-size: 9.5pt; text-transform: uppercase; color: #0f172a; border-bottom: 1px solid #cbd5e1; padding-bottom: 4px; margin-bottom: 6px;">
+      CATATAN PROFILING RISIKO & KARAKTER TAHANAN / NARAPIDANA:
+    </div>
+    <table style="width: 100%; font-size: 8.5pt; border-collapse: collapse;">
+      <tr><td style="width: 28%; font-weight: bold; padding: 2px 0;">Tingkat Risiko Keamanan:</td><td style="font-weight: bold; color: #b91c1c; padding: 2px 0;">${matchingProfile.riskLevel.replace(/_/g, ' ')}</td></tr>
+      <tr><td style="font-weight: bold; padding: 2px 0;">Profil Kepribadian:</td><td style="padding: 2px 0;">${matchingProfile.psychologicalProfile}</td></tr>
+      <tr><td style="font-weight: bold; padding: 2px 0;">Analisis Risiko Keamanan:</td><td style="padding: 2px 0;">${matchingProfile.securityRiskNotes}</td></tr>
+      <tr><td style="font-weight: bold; padding: 2px 0;">Interaksi & Perilaku Sosial:</td><td style="padding: 2px 0;">${matchingProfile.socialBehaviorNotes}</td></tr>
+      <tr><td style="font-weight: bold; padding: 2px 0;">Rekomendasi Penempatan:</td><td style="font-weight: bold; color: #1e3a8a; padding: 2px 0;">${matchingProfile.recommendation}</td></tr>
+    </table>
+  </div>
+  ` : ''}
 
   <div class="punishment-box">
     <div class="punishment-title">SANKSI DISIPLIN KPLP:</div>
@@ -607,6 +629,33 @@ ${violation.investigatorName || 'M. SYUKRON, S.H., M.H.'}
               </tr>
             </tbody>
           </table>
+
+          {/* Profiling Notes if available */}
+          {matchingProfile && (
+            <div className="border border-slate-300 rounded-lg p-3.5 bg-slate-50 space-y-2 font-sans text-xs">
+              <h5 className="font-extrabold text-slate-900 uppercase tracking-wide border-b border-slate-300 pb-1 text-[11px]">
+                CATATAN PROFILING RISIKO & KARAKTER TAHANAN / NARAPIDANA
+              </h5>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
+                <div>
+                  <span className="font-bold text-slate-700">Level Risiko: </span>
+                  <span className="font-extrabold text-red-700">{matchingProfile.riskLevel.replace(/_/g, ' ')}</span>
+                </div>
+                <div>
+                  <span className="font-bold text-slate-700">Kepribadian: </span>
+                  <span className="text-slate-800">{matchingProfile.psychologicalProfile}</span>
+                </div>
+                <div className="sm:col-span-2">
+                  <span className="font-bold text-slate-700">Risiko Keamanan: </span>
+                  <span className="text-slate-800">{matchingProfile.securityRiskNotes}</span>
+                </div>
+                <div className="sm:col-span-2">
+                  <span className="font-bold text-slate-700">Rekomendasi Penempatan: </span>
+                  <span className="font-bold text-indigo-900">{matchingProfile.recommendation}</span>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Punishment Decision */}
           <div className="space-y-3 pt-2 font-sans">

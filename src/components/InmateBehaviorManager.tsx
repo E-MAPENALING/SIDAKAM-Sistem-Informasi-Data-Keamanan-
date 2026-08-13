@@ -75,7 +75,7 @@ export function InmateBehaviorManager({
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
   const [printMode, setPrintMode] = useState<'INDIVIDUAL' | 'SUMMARY'>('SUMMARY');
   const [selectedTargetWbpId, setSelectedTargetWbpId] = useState<string>('');
-  const [reportDocNumber, setReportDocNumber] = useState(`LAP-BEH/KPLP/BTG/${new Date().getFullYear()}/089`);
+  const [reportDocNumber, setReportDocNumber] = useState('');
 
   // Filtered Records
   const filteredRecords = behaviorRecords.filter((rec) => {
@@ -935,16 +935,16 @@ export function InmateBehaviorManager({
                 />
                 <div>
                   <h2 className="text-xs sm:text-sm font-bold uppercase tracking-wider">
-                    KEMENTERIAN HUKUM DAN HAK ASASI MANUSIA R.I.
+                    KEMENTERIAN IMIGRASI DAN PEMASYARAKATAN RI
                   </h2>
                   <h3 className="text-xs sm:text-sm font-extrabold uppercase tracking-wide">
                     KANTOR WILAYAH JAWA TENGAH
                   </h3>
                   <h1 className="text-sm sm:text-base font-black uppercase tracking-widest text-slate-900">
-                    LAPAS KELAS IIB BATANG — KPLP
+                    LEMBAGA PEMASYARAKATAN KELAS IIB BATANG
                   </h1>
-                  <p className="text-[10px] font-sans text-slate-600 italic">
-                    Jl. D.I. Panjaitan No. 1, Kauman, Kec. Batang, Kabupaten Batang, Jawa Tengah 51215
+                  <p className="text-[11px] font-sans font-semibold text-slate-800">
+                    Jl. Raya Batang-Bandar km 4,1, Batang 51216, Telepon: (0285) 4494300
                   </p>
                 </div>
               </div>
@@ -957,8 +957,15 @@ export function InmateBehaviorManager({
                     : 'LAPORAN REKAPITULASI CATATAN PERILAKU NARAPIDANA'
                   }
                 </h3>
-                <p className="text-xs font-mono font-bold">
-                  Nomor: {reportDocNumber}
+                <p className="text-xs font-mono font-bold flex items-center justify-center gap-1">
+                  <span>Nomor:</span>
+                  <input
+                    type="text"
+                    value={reportDocNumber}
+                    onChange={(e) => setReportDocNumber(e.target.value)}
+                    placeholder=".................................................."
+                    className="font-mono font-bold text-slate-800 bg-transparent border-b border-dashed border-slate-300 hover:border-slate-500 focus:border-blue-500 focus:outline-none text-center min-w-[240px] print:border-none print:placeholder-transparent"
+                  />
                 </p>
               </div>
 

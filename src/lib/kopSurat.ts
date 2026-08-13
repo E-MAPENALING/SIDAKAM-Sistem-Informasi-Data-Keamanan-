@@ -12,10 +12,9 @@ export const getKopSuratHTML = (titleText?: string, subtitleText?: string) => {
       </div>
       <div style="text-align: center; width: 100%; padding-left: 80px; font-family: Arial, Helvetica, sans-serif; color: #000;">
         <div style="font-size: 10.5pt; font-weight: 800; text-transform: uppercase; letter-spacing: 0.2px; line-height: 1.25;">KEMENTERIAN IMIGRASI DAN PEMASYARAKATAN REPUBLIK INDONESIA</div>
-        <div style="font-size: 10pt; font-weight: 800; text-transform: uppercase; margin-top: 1px; line-height: 1.25;">DIREKTORAT JENDERAL PEMASYARAKATAN</div>
-        <div style="font-size: 9.5pt; font-weight: 800; text-transform: uppercase; margin-top: 1px; line-height: 1.25;">KANTOR WILAYAH JAWA TENGAH</div>
+        <div style="font-size: 10pt; font-weight: 800; text-transform: uppercase; margin-top: 1px; line-height: 1.25;">KANTOR WILAYAH JAWA TENGAH</div>
         <div style="font-size: 11.5pt; font-weight: 900; text-transform: uppercase; margin-top: 2px; line-height: 1.25;">LEMBAGA PEMASYARAKATAN KELAS IIB BATANG</div>
-        <div style="font-size: 8pt; font-weight: 500; margin-top: 3px; line-height: 1.2;">Jalan Raya Batang KM 4.1 Rowobelang, Kabupaten Batang | Telp: (0285) 391042</div>
+        <div style="font-size: 8.5pt; font-weight: 600; margin-top: 3px; line-height: 1.2;">Jl. Raya Batang-Bandar km 4,1, Batang 51216, Telepon: (0285) 4494300</div>
       </div>
     </div>
     ${titleText ? `
