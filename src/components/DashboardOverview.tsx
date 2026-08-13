@@ -44,7 +44,8 @@ import {
   UserPlus,
   FileCheck,
   Briefcase,
-  AlertCircle
+  AlertCircle,
+  Bell
 } from 'lucide-react';
 
 interface DashboardOverviewProps {
@@ -116,6 +117,7 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
   const [formLeaveType, setFormLeaveType] = useState<string>('Cuti Tahunan');
   const [formLeaveRank, setFormLeaveRank] = useState<string>('Penata Muda (III/a)');
   const [formLeavePosition, setFormLeavePosition] = useState<string>('');
+  const [formLeaveRegu, setFormLeaveRegu] = useState<string>('Staf KPLP/Kamtib');
   const [formLeaveStartDate, setFormLeaveStartDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [formLeaveEndDate, setFormLeaveEndDate] = useState<string>('');
   const [formLeaveReason, setFormLeaveReason] = useState<string>('');
@@ -673,6 +675,7 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
       setFormLeaveType(officer.leaveType || 'Cuti Tahunan');
       setFormLeaveRank(officer.rank || 'Penata Muda (III/a)');
       setFormLeavePosition(officer.position || '');
+      setFormLeaveRegu(officer.regu || 'Staf KPLP/Kamtib');
       setFormLeaveStartDate(officer.leaveStartDate || new Date().toISOString().split('T')[0]);
       setFormLeaveEndDate(officer.leaveEndDate || '');
       setFormLeaveReason(officer.leaveReason || '');
@@ -685,6 +688,7 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
       setFormLeaveType('Cuti Tahunan');
       setFormLeaveRank(defaultActive?.rank || 'Penata Muda (III/a)');
       setFormLeavePosition(defaultActive?.position || '');
+      setFormLeaveRegu(defaultActive?.regu || 'Staf KPLP/Kamtib');
       setFormLeaveStartDate(new Date().toISOString().split('T')[0]);
       const nextWeek = new Date();
       nextWeek.setDate(nextWeek.getDate() + 7);
@@ -706,6 +710,7 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
       ...targetOfficer,
       rank: formLeaveRank.trim() || targetOfficer.rank,
       position: formLeavePosition.trim() || targetOfficer.position,
+      regu: formLeaveRegu.trim() || targetOfficer.regu,
       status: formLeaveStatus,
       leaveType: formLeaveType,
       leaveStartDate: formLeaveStartDate,
@@ -1041,6 +1046,97 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
             <span>AI Draft Lapsitkam</span>
           </button>
         </div>
+      </div>
+
+      {/* Top Notification Banner: Notifikasi Status Cuti Pegawai Berdasarkan Tanggal */}
+      <div className="bg-gradient-to-r from-slate-900 via-emerald-950 to-indigo-950 text-white rounded-xl p-4 shadow-md border border-emerald-800/60 relative overflow-hidden">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 relative z-10">
+          <div className="flex items-start gap-3">
+            <div className="p-2 bg-emerald-500/20 text-emerald-400 rounded-lg border border-emerald-500/30 shrink-0 mt-0.5">
+              <Bell className="w-5 h-5 text-emerald-400 animate-bounce" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="text-xs sm:text-sm font-extrabold text-white tracking-wide flex items-center gap-1.5 uppercase">
+                  NOTIFIKASI STATUS CUTI PEGAWAI PER TANGGAL
+                </h3>
+                <span className="px-2 py-0.5 bg-rose-500/30 text-rose-300 font-extrabold text-[10px] rounded-full border border-rose-500/40">
+                  {leaveOfficersList.length} PEGAWAI SEDANG CUTI
+                </span>
+              </div>
+              <p className="text-xs text-slate-300 mt-0.5">
+                Monitoring otomatis tanggal pelaksanaan cuti, jenis izin, dan tanggal kembali dinas pegawai.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={() => handleOpenLeaveModal()}
+              className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-lg shadow-sm transition-all flex items-center gap-1"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Input Cuti Baru</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                const el = document.getElementById('section-kontrol-pegawai-cuti');
+                if (el) el.scrollIntoView({ behavior: 'smooth' });
+              }}
+              className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs rounded-lg border border-slate-700 transition-all flex items-center gap-1"
+            >
+              <Calendar className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Lihat Kontrol Cuti</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Date Notifications Feed Cards */}
+        {leaveOfficersList.length > 0 ? (
+          <div className="mt-3 pt-3 border-t border-slate-800/80 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5">
+            {leaveOfficersList.map((off) => (
+              <div key={off.id} className="bg-slate-800/90 border border-slate-700/80 rounded-lg p-2.5 flex items-start justify-between gap-2 text-xs hover:border-emerald-500/50 transition-colors">
+                <div className="space-y-1 min-w-0">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="font-extrabold text-white truncate max-w-[150px]">{off.name}</span>
+                    <span className="text-[10px] bg-slate-700 text-slate-300 font-bold px-1.5 py-0.2 rounded shrink-0">
+                      {off.regu}
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-emerald-300 font-bold flex items-center gap-1">
+                    <Calendar className="w-3 h-3 text-emerald-400 shrink-0" />
+                    <span>{off.leaveStartDate || 'Mulai'} s/d {off.leaveEndDate || 'Selesai'}</span>
+                  </div>
+                  <div className="text-[10px] text-slate-400 truncate">
+                    {off.leaveType || 'Cuti Tahunan'} • No: {off.leaveDocNumber || '-'}
+                  </div>
+                </div>
+
+                <div className="flex flex-col items-end justify-between self-stretch shrink-0 space-y-1">
+                  <span className="px-2 py-0.5 bg-rose-500/20 text-rose-300 text-[9px] font-black uppercase rounded border border-rose-500/30 flex items-center gap-1">
+                    <Clock className="w-2.5 h-2.5" />
+                    <span>AKTIF CUTI</span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => handleEndLeave(off)}
+                    className="text-[10px] text-emerald-400 hover:text-emerald-300 font-bold hover:underline pt-1"
+                    title="Akhiri Cuti dan Kembalikan Status Kehadiran"
+                  >
+                    Akhiri Cuti
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="mt-3 pt-2.5 border-t border-slate-800/80 text-xs text-slate-300 flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+            <span>Seluruh pegawai hadir dinas lengkap. Tidak ada pegawai yang sedang mengajukan / menjalani cuti hari ini.</span>
+          </div>
+        )}
       </div>
 
       {/* Primary Dashboard Metrics Grid (5 Main Manual Editable Cards) */}
@@ -2891,6 +2987,29 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
                     className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-600"
                   />
                 </div>
+              </div>
+
+              {/* Regu / Unit Kerja Manual Input */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Regu / Unit Kerja (Bisa Ketik Manual):</label>
+                <input
+                  type="text"
+                  list="leave-regu-options"
+                  value={formLeaveRegu}
+                  onChange={(e) => setFormLeaveRegu(e.target.value)}
+                  placeholder="Contoh: Regu I (Alpha) / Staf KPLP / Ketik Unit Kerja Custom..."
+                  className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-600"
+                />
+                <datalist id="leave-regu-options">
+                  <option value="Staf KPLP/Kamtib" />
+                  <option value="Regu I (Alpha)" />
+                  <option value="Regu II (Beta)" />
+                  <option value="Regu III (Charlie)" />
+                  <option value="Regu IV (Delta)" />
+                  <option value="Staf Subbag TU" />
+                  <option value="Staf Kasi Binadik" />
+                  <option value="Staf Kasi Adm. Kamtib" />
+                </datalist>
               </div>
 
               {/* Status Dinas */}

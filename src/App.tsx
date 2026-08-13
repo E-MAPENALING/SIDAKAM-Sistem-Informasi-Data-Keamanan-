@@ -8,7 +8,8 @@ import {
   ViolationRecord, 
   RupamShift,
   SecurityOfficer,
-  IncidentStatus
+  IncidentStatus,
+  InmateBehaviorRecord
 } from './types';
 import { 
   INITIAL_SECURITY_STATS, 
@@ -17,7 +18,8 @@ import {
   INITIAL_WBP_DATA, 
   INITIAL_VIOLATIONS, 
   INITIAL_RUPAM_SHIFTS,
-  INITIAL_OFFICERS 
+  INITIAL_OFFICERS,
+  INITIAL_BEHAVIOR_RECORDS
 } from './data/mockData';
 import { 
   seedInitialDataIfEmpty, 
@@ -38,6 +40,7 @@ import { JournalManager } from './components/JournalManager';
 import { IncidentManager } from './components/IncidentManager';
 import { ViolationRegisterF } from './components/ViolationRegisterF';
 import { RupamShiftManager } from './components/RupamShiftManager';
+import { InmateBehaviorManager } from './components/InmateBehaviorManager';
 import { AiSecurityAnalyst } from './components/AiSecurityAnalyst';
 import { EmergencyPanicModal } from './components/EmergencyPanicModal';
 import { PrintReportModal } from './components/PrintReportModal';
@@ -49,11 +52,12 @@ import {
   Lock, 
   Users, 
   Sparkles, 
-  Radio
+  Radio,
+  ClipboardList
 } from 'lucide-react';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'overview' | 'journal' | 'violations' | 'rupam' | 'ai-analyst'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'journal' | 'violations' | 'rupam' | 'behavior' | 'ai-analyst'>('overview');
 
   // Application Data States
   const [stats, setStats] = useState<SecurityStats>(INITIAL_SECURITY_STATS);
@@ -63,6 +67,7 @@ export default function App() {
   const [violations, setViolations] = useState<ViolationRecord[]>(INITIAL_VIOLATIONS);
   const [shifts, setShifts] = useState<RupamShift[]>(INITIAL_RUPAM_SHIFTS);
   const [officers, setOfficers] = useState<SecurityOfficer[]>(INITIAL_OFFICERS);
+  const [behaviorRecords, setBehaviorRecords] = useState<InmateBehaviorRecord[]>(INITIAL_BEHAVIOR_RECORDS);
 
   // Modals State
   const [isEmergencyModalOpen, setIsEmergencyModalOpen] = useState(false);
@@ -120,6 +125,13 @@ export default function App() {
       INITIAL_OFFICERS
     );
 
+    // Subscribe to Behavior Records
+    const unsubBehavior = subscribeToCollection<InmateBehaviorRecord>(
+      COLLECTIONS.BEHAVIOR_NOTES,
+      setBehaviorRecords,
+      INITIAL_BEHAVIOR_RECORDS
+    );
+
     // Subscribe to App Logo settings across devices
     const logoDocRef = doc(db, COLLECTIONS.SETTINGS, 'app_logo');
     const unsubLogo = onSnapshot(logoDocRef, (snapshot) => {
@@ -143,9 +155,28 @@ export default function App() {
       unsubViolations();
       unsubShifts();
       unsubOfficers();
+      unsubBehavior();
       unsubLogo();
     };
   }, []);
+
+  // Handlers for Behavior Records
+  const handleAddBehaviorRecord = (recordData: Omit<InmateBehaviorRecord, 'id'>) => {
+    const newRecord: InmateBehaviorRecord = {
+      ...recordData,
+      id: 'beh-' + Date.now(),
+      createdAt: new Date().toISOString(),
+    };
+    saveDocumentToCloud(COLLECTIONS.BEHAVIOR_NOTES, newRecord);
+  };
+
+  const handleUpdateBehaviorRecord = (updatedRecord: InmateBehaviorRecord) => {
+    saveDocumentToCloud(COLLECTIONS.BEHAVIOR_NOTES, updatedRecord);
+  };
+
+  const handleDeleteBehaviorRecord = (id: string) => {
+    deleteDocumentFromCloud(COLLECTIONS.BEHAVIOR_NOTES, id);
+  };
 
   // Handlers with Cloud Sync
   const handleUpdateStats = (newStats: Partial<SecurityStats>) => {
@@ -250,6 +281,10 @@ export default function App() {
       setStats(updatedStats);
       saveStatsToCloud(updatedStats);
     }
+  };
+
+  const handleUpdateViolation = (updatedViol: ViolationRecord) => {
+    saveDocumentToCloud(COLLECTIONS.VIOLATIONS, updatedViol);
   };
 
   const handleAddShift = (newShift: RupamShift) => {
@@ -373,6 +408,19 @@ export default function App() {
             </button>
 
             <button
+              id="tab-behavior"
+              onClick={() => setActiveTab('behavior')}
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-lg font-bold transition-all shrink-0 ${
+                activeTab === 'behavior'
+                  ? 'bg-emerald-600 text-white shadow-sm'
+                  : 'text-slate-300 hover:text-emerald-300 hover:bg-slate-800'
+              }`}
+            >
+              <ClipboardList className="w-4 h-4 text-emerald-400" />
+              <span>Catatan Perilaku WBP</span>
+            </button>
+
+            <button
               id="tab-ai-analyst"
               onClick={() => setActiveTab('ai-analyst')}
               className={`flex items-center gap-2 px-3.5 py-2 rounded-lg font-bold transition-all shrink-0 ${
@@ -384,6 +432,7 @@ export default function App() {
               <Sparkles className="w-4 h-4 text-amber-300" />
               <span>AI Analyst & Draft Lapsitkam</span>
             </button>
+
 
           </div>
         </div>
@@ -422,6 +471,7 @@ export default function App() {
             wbpList={wbpList}
             violations={violations}
             onAddViolation={handleAddViolation}
+            onUpdateViolation={handleUpdateViolation}
             onPrintBap={(v) => setSelectedBapForPrint(v)}
           />
         )}
@@ -437,9 +487,20 @@ export default function App() {
           />
         )}
 
+        {activeTab === 'behavior' && (
+          <InmateBehaviorManager
+            wbpList={wbpList}
+            behaviorRecords={behaviorRecords}
+            onAddBehaviorRecord={handleAddBehaviorRecord}
+            onUpdateBehaviorRecord={handleUpdateBehaviorRecord}
+            onDeleteBehaviorRecord={handleDeleteBehaviorRecord}
+          />
+        )}
+
         {activeTab === 'ai-analyst' && (
           <AiSecurityAnalyst stats={stats} incidents={incidents} violations={violations} />
         )}
+
       </main>
 
       {/* Footer */}

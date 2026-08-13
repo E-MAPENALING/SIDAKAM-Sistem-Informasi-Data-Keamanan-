@@ -881,17 +881,25 @@ export const RupamShiftManager: React.FC<RupamShiftManagerProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-slate-700 font-bold mb-1">Regu / Unit Kerja</label>
-                  <select
+                  <label className="block text-slate-700 font-bold mb-1">Regu / Unit Kerja (Manual / Pilih)</label>
+                  <input
+                    type="text"
+                    list="regu-options"
+                    placeholder="Contoh: Regu I (Alpha) / Staf KPLP / Ketik Manual..."
                     value={formRegu}
                     onChange={(e) => setFormRegu(e.target.value)}
                     className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-slate-800 font-bold focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="Staf KPLP/Kamtib">Staf KPLP/Kamtib</option>
-                    <option value="Regu I (Alpha)">Regu I (Alpha)</option>
-                    <option value="Regu II (Beta)">Regu II (Beta)</option>
-                    <option value="Regu IV (Delta)">Regu IV (Delta)</option>
-                  </select>
+                  />
+                  <datalist id="regu-options">
+                    <option value="Staf KPLP/Kamtib" />
+                    <option value="Regu I (Alpha)" />
+                    <option value="Regu II (Beta)" />
+                    <option value="Regu III (Charlie)" />
+                    <option value="Regu IV (Delta)" />
+                    <option value="Staf Subbag TU" />
+                    <option value="Staf Kasi Binadik" />
+                    <option value="Staf Kasi Adm. Kamtib" />
+                  </datalist>
                 </div>
               </div>
 

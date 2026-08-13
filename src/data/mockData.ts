@@ -1,4 +1,4 @@
-import { IncidentReport, WBPRecord, ViolationRecord, RupamShift, SecurityStats, DailyJournalEntry, SecurityOfficer } from '../types';
+import { IncidentReport, WBPRecord, ViolationRecord, RupamShift, SecurityStats, DailyJournalEntry, SecurityOfficer, InmateBehaviorRecord } from '../types';
 
 export const INITIAL_DAILY_JOURNAL: DailyJournalEntry[] = [
   {
@@ -333,6 +333,8 @@ export const INITIAL_VIOLATIONS: ViolationRecord[] = [
     registerFStatus: 'AKTIF',
     investigatorName: 'KPLP Lapas Batang (Bpk. M. Syukron, S.H.)',
     kplpSignatureApproved: true,
+    chronologyDocName: 'Surat_Kronologi_Kejadian_Sajam_Bambang_Triyono.pdf',
+    chronologyDocUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
   },
   {
     id: 'viol-002',
@@ -351,6 +353,8 @@ export const INITIAL_VIOLATIONS: ViolationRecord[] = [
     registerFStatus: 'AKTIF',
     investigatorName: 'KPLP Lapas Batang',
     kplpSignatureApproved: true,
+    chronologyDocName: 'Surat_Kronologi_Razia_HP_Agus_Supriyanto.pdf',
+    chronologyDocUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
   },
   {
     id: 'viol-003',
@@ -533,3 +537,75 @@ export const INITIAL_OFFICERS: SecurityOfficer[] = [
     photoUrl: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=300&auto=format&fit=crop&q=80',
   }
 ];
+
+export const INITIAL_BEHAVIOR_RECORDS: InmateBehaviorRecord[] = [
+  {
+    id: 'beh-001',
+    wbpId: 'wbp-001',
+    wbpName: 'Budi Santoso bin Suwito',
+    wbpRegNumber: 'BI.018/2024',
+    block: 'Blok Beta (Narapidana Dewasa)',
+    roomNumber: 'B-02',
+    date: '2026-08-01',
+    time: '08:30',
+    category: 'POSITIF_PRESTASI',
+    scorePoint: 15,
+    behaviorTitle: 'Aktif Menjadi Tamping Kebersihan Masjid At-Taubah & Mengajar Tajwid',
+    description: 'WBP menunjukkan sikap sangat kooperatif, rajin membersihkan sarana ibadah Lapas, serta membantu petugas Wali Pemasyarakatan mengajar membaca Al-Quran bagi WBP pemula.',
+    reporterName: 'DODI, S.H. (Karupam I / Wali)',
+    reporterRole: 'Wali Pemasyarakatan Blok Beta',
+    followUpAction: 'Diusulkan dalam Daftar Relevansi Apresiasi Kelakuan Baik / Pertimbangan Remisi',
+  },
+  {
+    id: 'beh-002',
+    wbpId: 'wbp-002',
+    wbpName: 'Agus Supriyanto bin Sukirman',
+    wbpRegNumber: 'BI.042/2025',
+    block: 'Blok Beta (Narapidana Dewasa)',
+    roomNumber: 'B-04',
+    date: '2026-07-25',
+    time: '06:00',
+    category: 'PELANGGARAN_BERAT',
+    scorePoint: -15,
+    behaviorTitle: 'Penyelundupan Handphone & Powerbank di Kasur Kamar',
+    description: 'Terbukti menguasai 1 unit Smartphone Samsung dan Powerbank tersembunyi hasil penggeledahan RUPAM III.',
+    reporterName: 'Sutrisno, S.AP',
+    reporterRole: 'Petugas KPLP',
+    followUpAction: 'BAP Pelanggaran, Sanksi Register F dan Penempatan di Sel Isolasi Tutupan Sunyi',
+  },
+  {
+    id: 'beh-003',
+    wbpId: 'wbp-003',
+    wbpName: 'Bambang Hermawan bin H. Ahmad',
+    wbpRegNumber: 'BI.089/2025',
+    block: 'Blok Beta (Narapidana Dewasa)',
+    roomNumber: 'B-08',
+    date: '2026-08-02',
+    time: '09:15',
+    category: 'CATATAN_PEMBINAAN',
+    scorePoint: 5,
+    behaviorTitle: 'Mengikuti Pelatihan Kemandirian Pertanian & Panen Sayur Bimker',
+    description: 'WBP mengikuti arahan instruktur kegiatan kerja pertanian dengan disiplin tinggi dan hasil panen memuaskan.',
+    reporterName: 'BAMBANG HERMANTO, A.Md.IP',
+    reporterRole: 'Karupam II / Pembina Bimker',
+    followUpAction: 'Diberikan Sertifikat Keaktifan Kegiatan Kerja',
+  },
+  {
+    id: 'beh-004',
+    wbpId: 'wbp-006',
+    wbpName: 'Dedi Kurniawan alias Gepeng',
+    wbpRegNumber: 'BI.055/2025',
+    block: 'Blok Beta (Narapidana Dewasa)',
+    roomNumber: 'B-03',
+    date: '2026-08-03',
+    time: '14:20',
+    category: 'CATATAN_PEMBINAAN',
+    scorePoint: 0,
+    behaviorTitle: 'Evaluasi Sikap & Konseling Rutin Wali Pemasyarakatan',
+    description: 'Pelaksanaan konseling perubahan perilaku pasca menjalani hukuman disiplin. WBP berjanji tidak mengulangi pelanggaran.',
+    reporterName: 'DODI, S.H.',
+    reporterRole: 'Wali Pemasyarakatan',
+    followUpAction: 'Pemantauan Berkelanjutan oleh Petugas Blok',
+  }
+];
+

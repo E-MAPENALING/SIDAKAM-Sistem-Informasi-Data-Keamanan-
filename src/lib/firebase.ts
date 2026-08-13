@@ -17,7 +17,8 @@ import {
   WBPRecord, 
   ViolationRecord, 
   RupamShift,
-  SecurityOfficer 
+  SecurityOfficer,
+  InmateBehaviorRecord
 } from '../types';
 import { 
   INITIAL_SECURITY_STATS, 
@@ -26,7 +27,8 @@ import {
   INITIAL_WBP_DATA, 
   INITIAL_VIOLATIONS, 
   INITIAL_RUPAM_SHIFTS,
-  INITIAL_OFFICERS 
+  INITIAL_OFFICERS,
+  INITIAL_BEHAVIOR_RECORDS
 } from '../data/mockData';
 
 // Initialize Firebase App
@@ -46,6 +48,7 @@ export const COLLECTIONS = {
   VIOLATIONS: 'violations',
   SHIFTS: 'rupam_shifts',
   OFFICERS: 'security_officers',
+  BEHAVIOR_NOTES: 'inmate_behavior_notes',
   SETTINGS: 'app_settings',
 };
 
@@ -85,6 +88,10 @@ export async function seedInitialDataIfEmpty() {
       INITIAL_OFFICERS.forEach((item) => {
         batch.set(doc(db, COLLECTIONS.OFFICERS, item.id), item);
       });
+      // Seed Behavior Records
+      INITIAL_BEHAVIOR_RECORDS.forEach((item) => {
+        batch.set(doc(db, COLLECTIONS.BEHAVIOR_NOTES, item.id), item);
+      });
 
       await batch.commit();
       console.log('✅ Firebase initialized with seed data successfully!');
@@ -93,6 +100,7 @@ export async function seedInitialDataIfEmpty() {
     console.error('Error seeding Firebase initial data:', err);
   }
 }
+
 
 // --- Realtime Listeners ---
 

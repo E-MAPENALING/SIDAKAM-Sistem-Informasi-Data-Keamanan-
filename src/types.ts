@@ -110,6 +110,8 @@ export interface ViolationRecord {
   registerFStatus: 'AKTIF' | 'SELESAI' | 'PEMUTIHAN';
   investigatorName: string;
   kplpSignatureApproved: boolean;
+  chronologyDocUrl?: string;
+  chronologyDocName?: string;
 }
 
 export interface SecurityOfficer {
@@ -190,4 +192,30 @@ export interface SecurityStats {
   currentSecurityLevel: SecurityLevel;
   dailySearches?: InspectionDailyData;
   blocksInfo?: BlockRoomInfo[];
+}
+
+export type BehaviorCategory = 
+  | 'POSITIF_PRESTASI'
+  | 'CATATAN_PEMBINAAN'
+  | 'PELANGGARAN_RINGAN'
+  | 'PELANGGARAN_SEDANG'
+  | 'PELANGGARAN_BERAT';
+
+export interface InmateBehaviorRecord {
+  id: string;
+  wbpId: string;
+  wbpName: string;
+  wbpRegNumber: string;
+  block: BlockLocation;
+  roomNumber: string;
+  date: string; // YYYY-MM-DD
+  time?: string;
+  category: BehaviorCategory;
+  scorePoint: number; // e.g. +10, +5, 0, -5, -10
+  behaviorTitle: string;
+  description: string;
+  reporterName: string;
+  reporterRole?: string;
+  followUpAction?: string;
+  createdAt?: string;
 }
