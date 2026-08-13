@@ -125,9 +125,12 @@ export function subscribeToCollection<T extends { id: string }>(
   fallbackInitial: T[]
 ) {
   const colRef = collection(db, collectionName);
+  let hasInitialLoaded = false;
+
   return onSnapshot(colRef, (snapshot) => {
-    if (snapshot.empty && fallbackInitial.length > 0) {
-      // Automatically seed initial data to Firestore so all connected clients sync
+    if (snapshot.empty && !hasInitialLoaded && fallbackInitial.length > 0) {
+      hasInitialLoaded = true;
+      // Automatically seed initial data once to Firestore if completely empty on first startup
       const batch = writeBatch(db);
       fallbackInitial.forEach((item) => {
         batch.set(doc(db, collectionName, item.id), item);
@@ -135,6 +138,7 @@ export function subscribeToCollection<T extends { id: string }>(
       batch.commit().catch((err) => console.error(`Error auto seeding ${collectionName}:`, err));
       onUpdate(fallbackInitial);
     } else {
+      hasInitialLoaded = true;
       const list = snapshot.docs.map(doc => ({
         ...doc.data(),
         id: doc.id

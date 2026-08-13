@@ -259,6 +259,7 @@ export default function App() {
       bapNumber,
     };
 
+    setViolations((prev) => [newViolation, ...prev.filter((v) => v.id !== newId)]);
     saveDocumentToCloud(COLLECTIONS.VIOLATIONS, newViolation);
 
     // Update WBP status in list if isolasi active
@@ -270,6 +271,7 @@ export default function App() {
           punishmentStatus: 'ISOLASI_AKTIF',
           violationCount: targetWbp.violationCount + 1,
         };
+        setWbpList((prev) => prev.map((w) => (w.id === updatedWbp.id ? updatedWbp : w)));
         saveDocumentToCloud(COLLECTIONS.WBP, updatedWbp);
       }
 
@@ -284,7 +286,83 @@ export default function App() {
   };
 
   const handleUpdateViolation = (updatedViol: ViolationRecord) => {
+    setViolations((prev) => prev.map((v) => (v.id === updatedViol.id ? updatedViol : v)));
     saveDocumentToCloud(COLLECTIONS.VIOLATIONS, updatedViol);
+  };
+
+  const handleDeleteViolation = (id: string) => {
+    const targetViol = violations.find((v) => v.id === id);
+
+    // Filter out violation
+    const updatedViolations = violations.filter((v) => v.id !== id);
+    setViolations(updatedViolations);
+    deleteDocumentFromCloud(COLLECTIONS.VIOLATIONS, id);
+
+    // Sync corresponding WBP if exists
+    if (targetViol) {
+      const remainingForWbp = updatedViolations.filter(
+        (v) =>
+          (targetViol.wbpId && v.wbpId === targetViol.wbpId) ||
+          (targetViol.wbpRegNumber && v.wbpRegNumber.toLowerCase() === targetViol.wbpRegNumber.toLowerCase()) ||
+          (targetViol.wbpName && v.wbpName.toLowerCase() === targetViol.wbpName.toLowerCase())
+      );
+
+      const targetWbp = wbpList.find(
+        (w) =>
+          (targetViol.wbpId && w.id === targetViol.wbpId) ||
+          (targetViol.wbpRegNumber && w.regNumber.toLowerCase() === targetViol.wbpRegNumber.toLowerCase()) ||
+          (targetViol.wbpName && w.name.toLowerCase() === targetViol.wbpName.toLowerCase())
+      );
+
+      if (targetWbp) {
+        const updatedWbp: WBPRecord = {
+          ...targetWbp,
+          punishmentStatus: remainingForWbp.length > 0 ? targetWbp.punishmentStatus : 'BEBAS_PELANGGARAN',
+          violationCount: remainingForWbp.length,
+        };
+        setWbpList((prev) => prev.map((w) => (w.id === updatedWbp.id ? updatedWbp : w)));
+        saveDocumentToCloud(COLLECTIONS.WBP, updatedWbp);
+      }
+    }
+  };
+
+  const handleResetWbpStatus = (wbpId: string) => {
+    const targetWbp = wbpList.find((w) => w.id === wbpId);
+    if (!targetWbp) return;
+
+    const updatedWbp: WBPRecord = {
+      ...targetWbp,
+      punishmentStatus: 'BEBAS_PELANGGARAN',
+      violationCount: 0,
+    };
+    setWbpList((prev) => prev.map((w) => (w.id === wbpId ? updatedWbp : w)));
+    saveDocumentToCloud(COLLECTIONS.WBP, updatedWbp);
+
+    const associatedViolations = violations.filter(
+      (v) =>
+        v.wbpId === wbpId ||
+        (v.wbpRegNumber && v.wbpRegNumber.toLowerCase() === targetWbp.regNumber.toLowerCase()) ||
+        (v.wbpName && v.wbpName.toLowerCase() === targetWbp.name.toLowerCase())
+    );
+
+    associatedViolations.forEach((v) => {
+      deleteDocumentFromCloud(COLLECTIONS.VIOLATIONS, v.id);
+    });
+
+    setViolations((prev) =>
+      prev.filter(
+        (v) =>
+          v.wbpId !== wbpId &&
+          (v.wbpRegNumber ? v.wbpRegNumber.toLowerCase() !== targetWbp.regNumber.toLowerCase() : true) &&
+          (v.wbpName ? v.wbpName.toLowerCase() !== targetWbp.name.toLowerCase() : true)
+      )
+    );
+  };
+
+  const handleDeleteWbp = (wbpId: string) => {
+    handleResetWbpStatus(wbpId);
+    setWbpList((prev) => prev.filter((w) => w.id !== wbpId));
+    deleteDocumentFromCloud(COLLECTIONS.WBP, wbpId);
   };
 
   const handleAddShift = (newShift: RupamShift) => {
@@ -472,6 +550,9 @@ export default function App() {
             violations={violations}
             onAddViolation={handleAddViolation}
             onUpdateViolation={handleUpdateViolation}
+            onDeleteViolation={handleDeleteViolation}
+            onResetWbpStatus={handleResetWbpStatus}
+            onDeleteWbp={handleDeleteWbp}
             onPrintBap={(v) => setSelectedBapForPrint(v)}
           />
         )}
