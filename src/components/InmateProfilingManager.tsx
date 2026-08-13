@@ -23,6 +23,7 @@ import {
   ShieldAlert,
   Building,
   User,
+  Camera,
   ChevronRight,
   Brain,
   Activity,
@@ -91,10 +92,94 @@ export function InmateProfilingManager({
   // State Print Modal
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
   const [printTargetRecord, setPrintTargetRecord] = useState<InmateProfilingRecord | null>(null);
+
+  // Manual Input States for Signature Section
   const [printDocNumber, setPrintDocNumber] = useState('');
+  const [printSignPlaceDate, setPrintSignPlaceDate] = useState(
+    `Batang, ${new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}`
+  );
+  const [printSignRole, setPrintSignRole] = useState('Kepala Kesatuan Pengamanan Lapas');
+  const [printSignOffice, setPrintSignOffice] = useState('Lapas Kelas IIB Batang');
+  const [printSignName, setPrintSignName] = useState('BAMBANG HERMANTO, A.Md.IP');
+  const [printSignNip, setPrintSignNip] = useState('19820412 200212 1 001');
+
+  // Photo State for Print Modal
+  const [customPrintPhotoUrl, setCustomPrintPhotoUrl] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (printTargetRecord) {
+      const matched = wbpList.find(
+        (w) =>
+          w.id === printTargetRecord.wbpId ||
+          w.regNumber === printTargetRecord.wbpRegNumber ||
+          w.name.toLowerCase() === printTargetRecord.wbpName.toLowerCase()
+      );
+      setCustomPrintPhotoUrl(matched?.photoUrl || null);
+    } else {
+      setCustomPrintPhotoUrl(null);
+    }
+  }, [printTargetRecord, wbpList]);
+
+  const handleCustomPhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setCustomPrintPhotoUrl(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   // Delete Confirm State
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+
+  const handlePrintDoc = () => {
+    try {
+      const printContent = document.getElementById('printable-profiling-doc');
+      if (!printContent) {
+        window.print();
+        return;
+      }
+
+      const printWin = window.open('', '_blank', 'width=900,height=1000');
+      if (printWin) {
+        printWin.document.open();
+        printWin.document.write(`
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <title>Cetak Lembar Profiling WBP</title>
+              <script src="https://cdn.tailwindcss.com"></script>
+              <style>
+                @page { size: A4; margin: 15mm; }
+                body { font-family: 'Times New Roman', Times, serif; background: #ffffff; color: #000000; padding: 20px; }
+                input { border: none !important; outline: none !important; background: transparent !important; }
+              </style>
+            </head>
+            <body>
+              <div>${printContent.innerHTML}</div>
+              <script>
+                window.onload = function() {
+                  setTimeout(function() {
+                    window.print();
+                  }, 400);
+                };
+              </script>
+            </body>
+          </html>
+        `);
+        printWin.document.close();
+      } else {
+        window.focus();
+        window.print();
+      }
+    } catch (err) {
+      console.error('Print error:', err);
+      window.focus();
+      window.print();
+    }
+  };
 
   // Filtered Records
   const filteredRecords = profilingRecords.filter((rec) => {
@@ -1233,8 +1318,8 @@ export function InmateProfilingManager({
 
       {/* Modal Cetak Profiling Resmi */}
       {isPrintModalOpen && (
-        <div className="fixed inset-0 z-[110] bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-150">
-          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-4xl w-full my-8 overflow-hidden animate-in zoom-in-95 duration-150">
+        <div className="fixed inset-0 z-[110] bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-150 print:static print:inset-auto print:bg-white print:p-0 print:overflow-visible">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-4xl w-full my-8 overflow-hidden animate-in zoom-in-95 duration-150 print:shadow-none print:border-none print:my-0 print:max-w-none print:w-full">
             {/* Control Bar */}
             <div className="p-4 bg-slate-900 text-white flex items-center justify-between print:hidden">
               <div className="flex items-center gap-2">
@@ -1243,15 +1328,15 @@ export function InmateProfilingManager({
               </div>
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => window.print()}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs rounded-xl shadow-sm transition-all flex items-center gap-1.5"
+                  onClick={handlePrintDoc}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs rounded-xl shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
                 >
                   <Printer className="w-3.5 h-3.5" />
                   <span>Cetak Sekarang / Simpan PDF</span>
                 </button>
                 <button
                   onClick={() => setIsPrintModalOpen(false)}
-                  className="p-1.5 text-slate-300 hover:text-white rounded-lg transition-colors"
+                  className="p-1.5 text-slate-300 hover:text-white rounded-lg transition-colors cursor-pointer"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -1259,7 +1344,7 @@ export function InmateProfilingManager({
             </div>
 
             {/* Document Printable View */}
-            <div className="p-8 bg-white text-slate-900 space-y-6 font-serif leading-relaxed max-h-[80vh] overflow-y-auto print:max-h-none print:p-0">
+            <div id="printable-profiling-doc" className="p-8 bg-white text-slate-900 space-y-6 font-serif leading-relaxed max-h-[80vh] overflow-y-auto print:max-h-none print:p-0 print:overflow-visible">
               
               {/* Kop Surat */}
               <div className="flex items-center justify-between border-b-4 border-double border-slate-900 pb-4">
@@ -1306,22 +1391,68 @@ export function InmateProfilingManager({
               {printTargetRecord ? (
                 /* Cetak Profil Individual */
                 <div className="space-y-4 text-xs font-sans">
-                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-300 grid grid-cols-2 gap-3">
-                    <div>
-                      <p className="text-[10px] text-slate-500 font-bold uppercase">Nama Lengkap:</p>
-                      <p className="font-bold text-sm text-slate-900">{printTargetRecord.wbpName}</p>
+                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-300 flex items-start gap-4">
+                    {/* Pasfoto 3x4 Tahanan / Narapidana */}
+                    <div className="flex-shrink-0 flex flex-col items-center gap-1">
+                      <div className="relative group w-28 h-36 bg-slate-200 border-2 border-slate-400 rounded-lg overflow-hidden flex items-center justify-center shadow-sm">
+                        {customPrintPhotoUrl ? (
+                          <img
+                            src={customPrintPhotoUrl}
+                            alt={printTargetRecord.wbpName}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="flex flex-col items-center justify-center p-2 text-center text-slate-400">
+                            <User className="w-10 h-10 mb-1" />
+                            <span className="text-[9px] font-bold uppercase leading-tight">Pasfoto 3x4 WBP</span>
+                          </div>
+                        )}
+
+                        {/* Hover Overlay Unggah/Ganti Foto (Disembunyikan saat dicetak) */}
+                        <label className="absolute inset-0 bg-slate-900/75 text-white flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer print:hidden text-[10px] font-bold p-1 text-center">
+                          <Camera className="w-5 h-5 mb-1 text-blue-400" />
+                          <span>Ganti / Unggah Foto</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={handleCustomPhotoUpload}
+                          />
+                        </label>
+                      </div>
+
+                      <div className="text-[9px] font-mono font-bold text-slate-500 uppercase flex items-center gap-1 print:hidden">
+                        <span>Foto 3x4</span>
+                        {customPrintPhotoUrl && (
+                          <button
+                            type="button"
+                            onClick={() => setCustomPrintPhotoUrl(null)}
+                            className="text-red-500 hover:text-red-700 underline text-[9px] ml-1"
+                          >
+                            Hapus
+                          </button>
+                        )}
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-[10px] text-slate-500 font-bold uppercase">Nomor Registrasi:</p>
-                      <p className="font-mono font-bold text-sm text-slate-900">{printTargetRecord.wbpRegNumber}</p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] text-slate-500 font-bold uppercase">Status / Perkara:</p>
-                      <p className="font-bold text-slate-800">[{printTargetRecord.status}] {printTargetRecord.crime}</p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] text-slate-500 font-bold uppercase">Lokasi Blok / Kamar:</p>
-                      <p className="font-bold text-slate-800">{printTargetRecord.block} ({printTargetRecord.roomNumber})</p>
+
+                    {/* Informasi Biodata WBP */}
+                    <div className="flex-1 grid grid-cols-2 gap-3">
+                      <div>
+                        <p className="text-[10px] text-slate-500 font-bold uppercase">Nama Lengkap:</p>
+                        <p className="font-bold text-sm text-slate-900">{printTargetRecord.wbpName}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-slate-500 font-bold uppercase">Nomor Registrasi:</p>
+                        <p className="font-mono font-bold text-sm text-slate-900">{printTargetRecord.wbpRegNumber}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-slate-500 font-bold uppercase">Status / Perkara:</p>
+                        <p className="font-bold text-slate-800">[{printTargetRecord.status}] {printTargetRecord.crime}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-slate-500 font-bold uppercase">Lokasi Blok / Kamar:</p>
+                        <p className="font-bold text-slate-800">{printTargetRecord.block} ({printTargetRecord.roomNumber})</p>
+                      </div>
                     </div>
                   </div>
 
@@ -1413,17 +1544,49 @@ export function InmateProfilingManager({
                 </div>
               )}
 
-              {/* Tanda Tangan */}
+              {/* Tanda Tangan (Dapat Diinput / Diedit Manual) */}
               <div className="pt-8 flex justify-end font-sans text-xs">
-                <div className="text-center space-y-12">
-                  <div>
-                    <p className="text-slate-700">Batang, {new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
-                    <p className="font-bold text-slate-900">Kepala Kesatuan Pengamanan Lapas</p>
-                    <p className="text-[11px] text-slate-600">Lapas Kelas IIB Batang</p>
-                  </div>
-                  <div>
-                    <p className="font-black text-slate-900 underline text-sm">BAMBANG HERMANTO, A.Md.IP</p>
-                    <p className="text-[11px] text-slate-600">NIP. 19820412 200212 1 001</p>
+                <div className="text-center flex flex-col items-center space-y-1 min-w-[280px]">
+                  <input
+                    type="text"
+                    value={printSignPlaceDate}
+                    onChange={(e) => setPrintSignPlaceDate(e.target.value)}
+                    placeholder="Batang, DD MMMM YYYY"
+                    className="text-center font-medium text-slate-800 bg-transparent border-b border-dashed border-slate-300 focus:border-blue-500 focus:outline-none w-full print:border-none print:placeholder-transparent"
+                  />
+                  <input
+                    type="text"
+                    value={printSignRole}
+                    onChange={(e) => setPrintSignRole(e.target.value)}
+                    placeholder="Jabatan..."
+                    className="text-center font-bold text-slate-900 bg-transparent border-b border-dashed border-slate-300 focus:border-blue-500 focus:outline-none w-full print:border-none print:placeholder-transparent"
+                  />
+                  <input
+                    type="text"
+                    value={printSignOffice}
+                    onChange={(e) => setPrintSignOffice(e.target.value)}
+                    placeholder="Instansi / Unit..."
+                    className="text-center text-[11px] text-slate-600 bg-transparent border-b border-dashed border-slate-300 focus:border-blue-500 focus:outline-none w-full print:border-none print:placeholder-transparent"
+                  />
+
+                  <div className="h-16"></div>
+
+                  <input
+                    type="text"
+                    value={printSignName}
+                    onChange={(e) => setPrintSignName(e.target.value)}
+                    placeholder="Nama Penandatangan..."
+                    className="text-center font-black text-slate-900 underline text-sm uppercase tracking-wide bg-transparent border-b border-dashed border-slate-300 focus:border-blue-500 focus:outline-none w-full print:border-none print:placeholder-transparent"
+                  />
+                  <div className="flex items-center justify-center gap-1 w-full text-[11px] text-slate-600">
+                    <span className="font-semibold">NIP.</span>
+                    <input
+                      type="text"
+                      value={printSignNip}
+                      onChange={(e) => setPrintSignNip(e.target.value)}
+                      placeholder="19xxxxxxxxxxxxxx"
+                      className="text-center font-mono text-[11px] text-slate-700 bg-transparent border-b border-dashed border-slate-300 focus:border-blue-500 focus:outline-none min-w-[160px] print:border-none print:placeholder-transparent"
+                    />
                   </div>
                 </div>
               </div>
