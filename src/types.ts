@@ -252,6 +252,18 @@ export interface InmateProfilingRecord {
   assessorName: string; // Nama Petugas/Assessor/Tim Profiling
   assessorRole?: string; // Jabatan Petugas
   tags?: string[];
+  totalScore?: number; // Total skor asesmen wawancara keamanan (0-100)
+  indicators?: string[]; // Indikator hasil asesmen
+  affiliationLevel?: number; // Level afiliasi (0-3)
+  interviewAnswers?: Record<string, { answer: string; explanation?: string; score: number }>;
+  verificationData?: {
+    directObservation?: boolean;
+    registrationRecords?: boolean;
+    disciplineHistoryRegisterF?: boolean;
+    kplpIntelligenceInfo?: boolean;
+    bapasAssessment?: boolean;
+    verificationNotes?: string;
+  };
   createdAt?: string;
 }
 

@@ -8,6 +8,13 @@ import {
   WBPStatus
 } from '../types';
 import { 
+  StructuredProfilingInterviewModal 
+} from './StructuredProfilingInterviewModal';
+import { 
+  InterviewAnswers, 
+  OfficerVerification 
+} from '../data/profilingInterviewFormula';
+import { 
   ShieldCheck, 
   Plus, 
   Search, 
@@ -31,7 +38,10 @@ import {
   Lock,
   Eye,
   Tag,
-  Users
+  Users,
+  Sparkles,
+  ClipboardList,
+  Scale
 } from 'lucide-react';
 import { APP_LOGO_KEY } from './ImipasLogo';
 
@@ -82,6 +92,14 @@ export function InmateProfilingManager({
   const [formAssessorName, setFormAssessorName] = useState('DODI, S.H. (Tim Profiling KPLP)');
   const [formAssessorRole, setFormAssessorRole] = useState('Tim Profiling KPLP & Wali Pemasyarakatan');
   const [formTags, setFormTags] = useState('Risiko Keamanan, Pengawasan Blok');
+  
+  // Structured Interview Scoring States
+  const [formTotalScore, setFormTotalScore] = useState<number | undefined>(undefined);
+  const [formIndicators, setFormIndicators] = useState<string[] | undefined>(undefined);
+  const [formAffiliationLevel, setFormAffiliationLevel] = useState<number | undefined>(undefined);
+  const [formInterviewAnswers, setFormInterviewAnswers] = useState<InterviewAnswers | undefined>(undefined);
+  const [formVerificationData, setFormVerificationData] = useState<OfficerVerification | undefined>(undefined);
+  const [isInterviewModalOpen, setIsInterviewModalOpen] = useState(false);
 
   // Input Mode State (Pilih dari Database atau Input Manual Baru)
   const [inputMode, setInputMode] = useState<'DATABASE' | 'MANUAL'>('DATABASE');
@@ -228,6 +246,11 @@ export function InmateProfilingManager({
       setFormAssessorName(record.assessorName);
       setFormAssessorRole(record.assessorRole || 'Tim Profiling KPLP');
       setFormTags(record.tags ? record.tags.join(', ') : '');
+      setFormTotalScore(record.totalScore);
+      setFormIndicators(record.indicators);
+      setFormAffiliationLevel(record.affiliationLevel);
+      setFormInterviewAnswers(record.interviewAnswers);
+      setFormVerificationData(record.verificationData as OfficerVerification | undefined);
 
       const isDb = wbpList.some((w) => w.id === record.wbpId);
       setInputMode(isDb ? 'DATABASE' : 'MANUAL');
@@ -267,8 +290,51 @@ export function InmateProfilingManager({
       setFormAssessorName('DODI, S.H. (Tim Profiling KPLP)');
       setFormAssessorRole('Tim Profiling KPLP & Wali Pemasyarakatan');
       setFormTags('Pengawasan Standar, Kooperatif');
+      setFormTotalScore(undefined);
+      setFormIndicators(undefined);
+      setFormAffiliationLevel(undefined);
+      setFormInterviewAnswers(undefined);
+      setFormVerificationData(undefined);
     }
     setIsModalOpen(true);
+  };
+
+  // Handler Apply Results from Structured Interview Formula
+  const handleApplyInterviewResults = (results: {
+    totalScore: number;
+    riskLevel: RiskLevel;
+    psychologicalProfile: string;
+    securityRiskNotes: string;
+    socialBehaviorNotes: string;
+    affiliationNotes: string;
+    recommendation: string;
+    indicators: string[];
+    affiliationLevel: number;
+    answers: InterviewAnswers;
+    verification: OfficerVerification;
+  }) => {
+    setFormTotalScore(results.totalScore);
+    setFormRiskLevel(results.riskLevel);
+    setFormPsychologicalProfile(results.psychologicalProfile);
+    setFormSecurityRiskNotes(results.securityRiskNotes);
+    setFormSocialBehaviorNotes(results.socialBehaviorNotes);
+    setFormAffiliationNotes(results.affiliationNotes);
+    setFormRecommendation(results.recommendation);
+    setFormIndicators(results.indicators);
+    setFormAffiliationLevel(results.affiliationLevel);
+    setFormInterviewAnswers(results.answers);
+    setFormVerificationData(results.verification);
+
+    // Auto-enrich tags
+    const newTags = Array.from(
+      new Set([
+        ...formTags.split(',').map((t) => t.trim()).filter((t) => t.length > 0),
+        `Skor: ${results.totalScore}`,
+        results.riskLevel.replace(/_/g, ' '),
+        ...(results.indicators || []).slice(0, 2),
+      ])
+    ).join(', ');
+    setFormTags(newTags);
   };
 
   // Handler Select WBP Change in Form
@@ -323,6 +389,11 @@ export function InmateProfilingManager({
         assessorName: formAssessorName,
         assessorRole: formAssessorRole,
         tags: tagsArray,
+        totalScore: formTotalScore,
+        indicators: formIndicators,
+        affiliationLevel: formAffiliationLevel,
+        interviewAnswers: formInterviewAnswers,
+        verificationData: formVerificationData,
       };
       onUpdateProfilingRecord(updated);
     } else {
@@ -347,6 +418,11 @@ export function InmateProfilingManager({
         assessorName: formAssessorName,
         assessorRole: formAssessorRole,
         tags: tagsArray,
+        totalScore: formTotalScore,
+        indicators: formIndicators,
+        affiliationLevel: formAffiliationLevel,
+        interviewAnswers: formInterviewAnswers,
+        verificationData: formVerificationData,
         createdAt: new Date().toISOString(),
       };
       onAddProfilingRecord(newRecord);
@@ -453,17 +529,27 @@ export function InmateProfilingManager({
           <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
             <button
               onClick={() => {
+                handleOpenModal();
+                setIsInterviewModalOpen(true);
+              }}
+              className="px-4 py-2.5 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white text-xs font-extrabold rounded-xl shadow-lg shadow-orange-950/40 transition-all flex items-center gap-2 active:scale-95 cursor-pointer"
+            >
+              <Scale className="w-4 h-4" />
+              <span>📋 Asesmen Wawancara Keamanan (Rumus KPLP)</span>
+            </button>
+            <button
+              onClick={() => {
                 setPrintTargetRecord(null);
                 setIsPrintModalOpen(true);
               }}
-              className="px-3.5 py-2.5 bg-slate-800/80 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl border border-slate-700 shadow-sm transition-all flex items-center gap-2"
+              className="px-3.5 py-2.5 bg-slate-800/80 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl border border-slate-700 shadow-sm transition-all flex items-center gap-2 cursor-pointer"
             >
               <Printer className="w-4 h-4 text-blue-300" />
               <span>Cetak Rekap Profiling</span>
             </button>
             <button
               onClick={() => handleOpenModal()}
-              className="px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-extrabold rounded-xl shadow-lg shadow-blue-900/40 transition-all flex items-center gap-2 active:scale-95"
+              className="px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-extrabold rounded-xl shadow-lg shadow-blue-900/40 transition-all flex items-center gap-2 active:scale-95 cursor-pointer"
             >
               <Plus className="w-4 h-4" />
               <span>+ Catatan Profiling Baru</span>
@@ -876,6 +962,44 @@ export function InmateProfilingManager({
             {/* Form Body */}
             <form onSubmit={handleSubmitForm} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto text-xs">
               
+              {/* Interactive Launch Interview Formula Banner */}
+              <div className="bg-gradient-to-r from-blue-950 via-slate-900 to-indigo-950 text-white p-4 rounded-2xl border border-blue-800 shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 bg-amber-500 text-slate-950 font-black text-[10px] rounded uppercase">
+                      Rumus Terstruktur KPLP
+                    </span>
+                    <span className="text-[11px] font-bold text-blue-300">
+                      Bagian A s/d G (78 Pertanyaan & Verifikasi Multi-Sumber)
+                    </span>
+                  </div>
+                  <h4 className="font-extrabold text-sm text-white flex items-center gap-2">
+                    <ClipboardList className="w-4 h-4 text-amber-400" />
+                    <span>Formulir Wawancara Asesmen Keamanan WBP</span>
+                  </h4>
+                  <p className="text-[11px] text-slate-300 leading-relaxed">
+                    Lakukan wawancara terstruktur untuk otomatis menghitung skor risiko (0-100), level afiliasi (0-3), dan rekomendasi penempatan.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  {formTotalScore !== undefined && (
+                    <div className="bg-slate-800 px-3 py-1.5 rounded-xl border border-slate-700 text-right">
+                      <span className="text-[10px] text-slate-400 block font-bold">Skor Terhitung:</span>
+                      <span className="text-sm font-black text-amber-400 font-mono">{formTotalScore} / 100</span>
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setIsInterviewModalOpen(true)}
+                    className="px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs rounded-xl shadow-md flex items-center gap-1.5 transition-all cursor-pointer active:scale-95"
+                  >
+                    <Sparkles className="w-4 h-4 text-amber-300" />
+                    <span>{formTotalScore !== undefined ? 'Ulangi / Edit Wawancara' : 'Mulai Wawancara Keamanan'}</span>
+                  </button>
+                </div>
+              </div>
+
               {/* Select WBP / Manual Input */}
               <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
                 <div className="flex items-center justify-between flex-wrap gap-2 pb-2 border-b border-slate-200">
@@ -1240,6 +1364,32 @@ export function InmateProfilingManager({
               </div>
 
               <div className="space-y-3">
+                {/* Scoring Banner if from Structured Formula */}
+                {detailRecord.totalScore !== undefined && (
+                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="p-2 bg-amber-500 text-white rounded-lg">
+                        <Scale className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <span className="text-[10px] uppercase font-bold text-amber-800 block">Hasil Wawancara Keamanan (Rumus KPLP)</span>
+                        <span className="font-extrabold text-amber-950 text-xs">
+                          Skor Total: <strong className="font-mono text-sm">{detailRecord.totalScore}</strong> / 100 ({detailRecord.riskLevel.replace(/_/g, ' ')})
+                        </span>
+                      </div>
+                    </div>
+                    {detailRecord.indicators && detailRecord.indicators.length > 0 && (
+                      <div className="flex flex-wrap gap-1 max-w-[200px] justify-end">
+                        {detailRecord.indicators.slice(0, 2).map((ind, i) => (
+                          <span key={i} className="px-1.5 py-0.5 bg-amber-200/80 text-amber-900 rounded text-[9px] font-bold">
+                            {ind}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 <div>
                   <h4 className="font-bold text-slate-900 flex items-center gap-1.5 mb-1 text-xs">
                     <Brain className="w-4 h-4 text-blue-600" />
@@ -1461,8 +1611,23 @@ export function InmateProfilingManager({
                       <tbody>
                         <tr className="border-b border-slate-200 bg-slate-100">
                           <td className="p-2.5 font-bold w-48 text-slate-800">Tingkat Risiko Keamanan</td>
-                          <td className="p-2.5 font-bold text-slate-900">{printTargetRecord.riskLevel.replace(/_/g, ' ')}</td>
+                          <td className="p-2.5 font-bold text-slate-900 flex items-center justify-between">
+                            <span>{printTargetRecord.riskLevel.replace(/_/g, ' ')}</span>
+                            {printTargetRecord.totalScore !== undefined && (
+                              <span className="font-mono text-[11px] bg-slate-200 px-2 py-0.5 rounded text-slate-900">
+                                Skor Asesmen: <strong>{printTargetRecord.totalScore} / 100</strong>
+                              </span>
+                            )}
+                          </td>
                         </tr>
+                        {printTargetRecord.indicators && printTargetRecord.indicators.length > 0 && (
+                          <tr className="border-b border-slate-200 bg-amber-50/50">
+                            <td className="p-2.5 font-bold text-amber-900">Indikator Terverifikasi</td>
+                            <td className="p-2.5 text-amber-950 font-medium">
+                              {printTargetRecord.indicators.join(' • ')}
+                            </td>
+                          </tr>
+                        )}
                         <tr className="border-b border-slate-200">
                           <td className="p-2.5 font-bold text-slate-800">Profil Kepribadian & Karakter</td>
                           <td className="p-2.5 text-slate-800">{printTargetRecord.psychologicalProfile}</td>
@@ -1627,6 +1792,24 @@ export function InmateProfilingManager({
           </div>
         </div>
       )}
+
+      {/* Structured Profiling Interview Modal (Rumus Asesmen Keamanan KPLP) */}
+      <StructuredProfilingInterviewModal
+        isOpen={isInterviewModalOpen}
+        onClose={() => setIsInterviewModalOpen(false)}
+        inmateName={formWbpName || 'Tahanan / WBP'}
+        regNumber={formWbpRegNumber || '-'}
+        status={formStatus}
+        block={formBlock}
+        room={formRoomNumber}
+        crime={formCrime}
+        initialAnswers={formInterviewAnswers}
+        initialVerification={formVerificationData}
+        onApplyResults={(results) => {
+          handleApplyInterviewResults(results);
+          setIsInterviewModalOpen(false);
+        }}
+      />
 
     </div>
   );
